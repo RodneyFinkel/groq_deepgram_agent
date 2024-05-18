@@ -8,10 +8,8 @@ from deepgram import Deepgram
 
 # brew install portaudio
 
-# Load environment variables
 load_dotenv()
 
-# Set your Deepgram API Key and desired voice model
 DG_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 MODEL_NAME = "alpha-stella-en-v2"  # Example model name, change as needed
 
