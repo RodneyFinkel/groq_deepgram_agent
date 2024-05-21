@@ -22,5 +22,5 @@ powershell -command "Expand-Archive -Path .\ffmpeg-release-essentials.zip -Desti
 setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 ###Replace <version> with the actual version directory inside C:\ffmpeg (e.g., ffmpeg-5.1-essentials_build)###
 
-TO LAUNCH
+LAUNCH
 python3 QuickAgent.py
