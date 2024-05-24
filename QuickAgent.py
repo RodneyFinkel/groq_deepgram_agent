@@ -70,7 +70,8 @@ class LanguageModelProcessor:
 class TextToSpeech:
     
     DG_API_KEY = os.getenv("DEEPGRAM_API_KEY")
-    MODEL_NAME = "aura-helios-en"  # Example model name, change as needed
+    # MODEL_NAME = "aura-helios-en"  # Example model name, change as needed
+    MODEL_NAME = "aura-orion-en"
 
     @staticmethod
     def is_installed(lib_name: str) -> bool:

@@ -12,6 +12,7 @@ load_dotenv()
 
 DG_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 MODEL_NAME = "alpha-stella-en-v2"  # Example model name, change as needed
+# MODEL_NAME = "aura-orion-en-v2"
 
 def is_installed(lib_name: str) -> bool:
     lib = shutil.which(lib_name)
