@@ -9,4 +9,4 @@ services:
         apt-get update && apt-get install -y portaudio19-dev
       fi
       pip install -r requirements.txt
-    startCommand: your-start-command
+    startCommand: python3 app.py
