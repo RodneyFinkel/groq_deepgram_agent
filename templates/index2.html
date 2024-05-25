@@ -32,10 +32,11 @@
     </div>
     <div class="button-container">
         <a href="https://console.deepgram.com/signup" class="info-button sign-up" target="_blank">Sign Up</a>
-        <a href="https://developers.deepgram.com/docs/introduction" class="info-button docs" target="_blank">Read the Docs</a>
+        <a href="https://github.com/RodneyFinkel/groq_deepgram_agent" class="info-button docs" target="_blank">Read the Docs</a>
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-
+    <br>
+    <!-- <iframe id="transcriptFrame" width="600" height="400" frameborder="1"></iframe> -->
     <script>
         function startTranscription() {
             fetch('/transcribe', {
