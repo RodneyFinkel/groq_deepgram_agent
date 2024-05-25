@@ -4,11 +4,9 @@ from QuickAgent import ConversationManager, TextToSpeech, TranscriptCollector
 
 app = Flask(__name__)
 
-# Initialize ConversationManager and TranscriptCollector
 manager = ConversationManager()
 transcript_collector = TranscriptCollector()
 
-# Route for the index page
 @app.route('/')
 def index():
     return render_template('index2.html')
@@ -23,7 +21,6 @@ def transcribe():
 
 # Function to process transcription asynchronously
 async def process_transcription():
-    # Start the ConversationManager
     await manager.main()
 
 # Callback function to handle transcribed text
