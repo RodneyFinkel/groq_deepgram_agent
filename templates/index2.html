@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="content">
-        <img class="click" src="{{ url_for('static', filename='click.png') }}" />
+        <img class="click" src="{{ url_for('static', filename='alep.png') }}" />
         <div class="button-container">
             <input type="checkbox" id="record" class="mic-checkbox" />
             <label for="record" class="mic-button" onclick="startTranscription()">
@@ -31,7 +31,7 @@
         <span>Realtime speech transcription API</span>
     </div>
     <div class="button-container">
-        <a href="https://console.deepgram.com/signup" class="info-button sign-up" target="_blank">Sign Up</a>
+        <a href="" class="info-button sign-up" target="_blank">Sign Up</a>
         <a href="https://github.com/RodneyFinkel/groq_deepgram_agent" class="info-button docs" target="_blank">Read the Docs</a>
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
