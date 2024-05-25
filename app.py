@@ -5,10 +5,10 @@ import subprocess
 import requests
 import time
 import os
-
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO, emit
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -17,26 +17,19 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 from langchain.chains import LLMChain
-
-from deepgram import (
-    DeepgramClient,
-    DeepgramClientOptions,
-    LiveTranscriptionEvents,
-    LiveOptions,
-    Microphone,
-)
+from deepgram import DeepgramClient, DeepgramClientOptions, LiveTranscriptionEvents, LiveOptions, Microphone
 
 load_dotenv()
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, async_mode='threading')
 
 class LanguageModelProcessor:
     def __init__(self):
         self.llm = ChatGroq(temperature=0, model_name="mixtral-8x7b-32768", groq_api_key=os.getenv("GROQ_API_KEY"))
-        # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
-        # self.llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125", openai_api_key=os.getenv("OPENAI_API_KEY"))
-
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
-        # Load the system prompt from a file
+        
         with open('system_prompt.txt', 'r') as file:
             system_prompt = file.read().strip()
         
@@ -53,24 +46,17 @@ class LanguageModelProcessor:
         )
 
     def process(self, text):
-        self.memory.chat_memory.add_user_message(text)  # Add user message to memory
-
+        self.memory.chat_memory.add_user_message(text)
         start_time = time.time()
-
-        # Go get the response from the LLM
         response = self.conversation.invoke({"text": text})
         end_time = time.time()
-
-        self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
-
+        self.memory.chat_memory.add_ai_message(response['text'])
         elapsed_time = int((end_time - start_time) * 1000)
         print(f"LLM ({elapsed_time}ms): {response['text']}")
         return response['text']
 
 class TextToSpeech:
-    
     DG_API_KEY = os.getenv("DEEPGRAM_API_KEY")
-    # MODEL_NAME = "aura-orion-en"  # Example model name, change as needed
     MODEL_NAME = "aura-orion-en"
 
     @staticmethod
@@ -81,16 +67,12 @@ class TextToSpeech:
     def speak(self, text):
         if not self.is_installed("ffplay"):
             raise ValueError("ffplay not found, necessary to stream audio.")
-
         DEEPGRAM_URL = f"https://api.deepgram.com/v1/speak?model={self.MODEL_NAME}&performance=some&encoding=linear16&sample_rate=24000"
         headers = {
             "Authorization": f"Token {self.DG_API_KEY}",
             "Content-Type": "application/json"
         }
-        payload = {
-            "text": text
-        }
-
+        payload = {"text": text}
         player_command = ["ffplay", "-autoexit", "-", "-nodisp"]
         player_process = subprocess.Popen(
             player_command,
@@ -98,20 +80,17 @@ class TextToSpeech:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-
-        start_time = time.time()  # Record the time before sending the request
-        first_byte_time = None  # Initialize a variable to store the time when the first byte is received
-
+        start_time = time.time()
+        first_byte_time = None
         with requests.post(DEEPGRAM_URL, stream=True, headers=headers, json=payload) as r:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
-                    if first_byte_time is None:  # Check if this is the first chunk received
-                        first_byte_time = time.time()  # Record the time when the first byte is received
-                        ttfb = int((first_byte_time - start_time)*1000)  # Calculate the time to first byte
+                    if first_byte_time is None:
+                        first_byte_time = time.time()
+                        ttfb = int((first_byte_time - start_time)*1000)
                         print(f"TTS Time to First Byte (TTFB): {ttfb}ms\n")
                     player_process.stdin.write(chunk)
                     player_process.stdin.flush()
-
         if player_process.stdin:
             player_process.stdin.close()
         player_process.wait()
@@ -132,35 +111,24 @@ class TranscriptCollector:
 transcript_collector = TranscriptCollector()
 
 async def get_transcript(callback):
-    transcription_complete = asyncio.Event()  # Event to signal transcription completion
-
+    transcription_complete = asyncio.Event()
     try:
-        # example of setting up a client config. logging values: WARNING, VERBOSE, DEBUG, SPAM
         config = DeepgramClientOptions(options={"keepalive": "true"})
         deepgram: DeepgramClient = DeepgramClient("", config)
-
         dg_connection = deepgram.listen.asynclive.v("1")
-        print ("Listening...")
-
         async def on_message(self, result, **kwargs):
             sentence = result.channel.alternatives[0].transcript
-            
             if not result.speech_final:
                 transcript_collector.add_part(sentence)
             else:
-                # This is the final part of the current sentence
                 transcript_collector.add_part(sentence)
                 full_sentence = transcript_collector.get_full_transcript()
-                # Check if the full_sentence is not empty before printing
                 if len(full_sentence.strip()) > 0:
                     full_sentence = full_sentence.strip()
-                    print(f"Human: {full_sentence}")
-                    callback(full_sentence)  # Call the callback with the full_sentence
+                    callback(full_sentence)
                     transcript_collector.reset()
-                    transcription_complete.set()  # Signal to stop transcription and exit
-
+                    transcription_complete.set()
         dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
-
         options = LiveOptions(
             model="nova-2",
             punctuate=True,
@@ -171,21 +139,12 @@ async def get_transcript(callback):
             endpointing=300,
             smart_format=True,
         )
-
         await dg_connection.start(options)
-
-        # Open a microphone stream on the default input device
         microphone = Microphone(dg_connection.send)
         microphone.start()
-
-        await transcription_complete.wait()  # Wait for the transcription to complete instead of looping indefinitely
-
-        # Wait for the microphone to close
+        await transcription_complete.wait()
         microphone.finish()
-
-        # Indicate that we've finished
         await dg_connection.finish()
-
     except Exception as e:
         print(f"Could not open socket: {e}")
         return
@@ -198,23 +157,22 @@ class ConversationManager:
     async def main(self):
         def handle_full_sentence(full_sentence):
             self.transcription_response = full_sentence
-
-        # Loop indefinitely until "goodbye" is detected
-        while True:
-            await get_transcript(handle_full_sentence)
-            
-            # Check for "goodbye" to exit the loop
+            socketio.emit('transcription', {'data': full_sentence})
             if "goodbye" in self.transcription_response.lower():
-                break
-            
+                return
             llm_response = self.llm.process(self.transcription_response)
-
             tts = TextToSpeech()
             tts.speak(llm_response)
-
-            # Reset transcription_response for the next loop iteration
             self.transcription_response = ""
 
-if __name__ == "__main__":
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@socketio.on('start_transcription')
+def handle_start_transcription():
     manager = ConversationManager()
     asyncio.run(manager.main())
+
+if __name__ == "__main__":
+    socketio.run(app, debug=True)
