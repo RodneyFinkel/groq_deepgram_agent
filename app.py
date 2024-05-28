@@ -31,7 +31,6 @@ def handle_transcribed_text(text):
 # Register the callback function with the ConversationManager
 manager.transcription_callback = handle_transcribed_text
 
-# Run Flask app
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(app.run(debug=True))
