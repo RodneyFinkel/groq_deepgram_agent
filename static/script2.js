@@ -1,4 +1,3 @@
-
 var socket = io.connect(
     "http://" + window.location.hostname + ":" + location.port
   );
