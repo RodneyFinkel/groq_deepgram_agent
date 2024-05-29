@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quickagent Web App</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
     <script src="https://cdn.socket.io/4.5.3/socket.io.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
+    <nav class="navbar">
+        <img class="navbar-logo" src="{{ url_for('static', filename='alep.png') }}" alt="Logo" />
+    </nav>
     <div class="content">
-        <img class="click" src="{{ url_for('static', filename='alep.png') }}" />
+        <!-- <img class="click" src="{{ url_for('static', filename='alep.png') }}" /> -->
         <div class="button-container">
             <input type="checkbox" id="record" class="mic-checkbox" />
             <label for="record" class="mic-button" onclick="startTranscription()">
@@ -30,6 +33,7 @@
     
     <div class="captions" id="captions">
         <span>Realtime speech transcription API</span>
+        <iframe id="transcriptFrame" width="600" height="100" frameborder="1" src="/full_transcript"></iframe>
     </div>
     <div class="button-container">
         <a href="" class="info-button sign-up" target="_blank">Sign Up</a>
@@ -37,7 +41,7 @@
     </div>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <br>
-    <!-- <iframe id="transcriptFrame" width="600" height="400" frameborder="1"></iframe> -->
+    
     <script>
         function startTranscription() {
             fetch('/transcribe', {
@@ -55,11 +59,27 @@
             });
         }
 
-        // Function to update transcript frame
-        function updateTranscript(transcript) {
-            var captionsDiv = document.getElementById('captions');
-            captionsDiv.innerHTML = '<span>' + transcript + '</span>';
+        
+       
+
+        // Function to fetch the latest transcript and update the iframe
+        function updateTranscript() {
+            fetch('/full_transcript')
+                .then(response => response.json())  // Expecting HTML content, so use .text()
+                .then(data => {
+                    var iframe = document.getElementById('transcriptFrame');
+                    var doc = iframe.contentDocument || iframe.contentWindow.document;
+                    doc.open();
+                    doc.write(data);
+                    doc.close();
+                })
+                .catch(error => {
+                    console.error('Error fetching transcript:', error);
+                });
         }
+
+        // Set an interval to reload the iframe every 5 seconds
+        setInterval(updateTranscript, 5000);
     </script>
 </body>
 </html>

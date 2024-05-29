@@ -1,25 +1,50 @@
-
-/* @import url(https://fonts.googleapis.com/css?family=Montserrat); */
 @import url("https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700");
 @import url("https://fonts.googleapis.com/css2?family=Inter");
 
 body {
-  color: white;
+  color: #333; /* Darker text color for better contrast on white background */
   display: flex;
   align-items: center;
   font-family: "Inter", sans-serif;
   justify-content: center;
   flex-direction: column;
   height: 90vh;
-  background-color: #000;
+  background-color: #fff; /* Changed to white background */
   padding-top: 100px;
+  margin: 0;
+}
+
+/* Navbar styling */
+.navbar {
+  width: 100%;
+  background-color: #f8f9fa; /* Light grey background for navbar */
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-logo {
+  height: 65px; /* Adjusted height to make the logo smaller */
 }
 
 .content {
   display: flex;
-  height: 30vh;
-  position: relative;
+  flex-direction: column; /* Ensure the image and buttons are stacked */
   align-items: center;
+  padding-top: 70px; /* Added padding to account for navbar */
+}
+
+/* Adjust the size of the content logo */
+.content-logo {
+  max-width: 50px; /* Maximum width for the image */
+  max-height: 50px; /* Maximum height for the image */
+  width: auto;
+  height: auto;
+  margin-bottom: 20px; /* Space below the image */
 }
 
 .mic-checkbox {
@@ -61,7 +86,7 @@ body {
 .button-message {
   position: absolute;
   width: 50px;
-  color: #fff;
+  color: #333; /* Darker text color */
   font-family: "Arimo", sans-serif;
   font-weight: 700;
   font-size: 25px;
@@ -146,17 +171,21 @@ body {
 }
 
 #captions {
-  color: rgb(237, 237, 242);
+  color: #333; /* Darker text color */
   font-size: 24px;
   font-family: "Inter", sans-serif;
   margin: 10px 0;
   text-align: center;
+  width: 80%;
+  background-color: #f1f1f1; /* Light grey background for captions */
+  padding: 10px;
+  border-radius: 10px;
 }
 
-h1 {
+h2 {
   font-family: "Arimo", sans-serif;
-  font-size: 40px;
-  margin-top: 60px;
+  font-size: 32px;
+  margin-top: 20px;
   letter-spacing: -0.02em;
   opacity: 1;
   text-align: center;
@@ -186,19 +215,7 @@ h1 {
   background-origin: border-box;
   background-image: linear-gradient(90deg, #201cff -91.5%, #13ef95 80.05%);
   box-shadow: 2px 1000px 1px var(--md-code-background) inset;
-  z-index: 1;
-}
-
-.sign-up::before {
-  content: "";
-  border-radius: 4px;
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  bottom: 1px;
-  left: 1px;
-  background-color: black;
-  z-index: -1;
+  z-index: 1; /* Added z-index to fix missing colon issue */
 }
 
 .docs {
@@ -211,11 +228,4 @@ h1 {
   content: "\f061";
   margin-right: -4px;
   margin-left: 8px;
-}
-
-.click {
-  position: absolute;
-  height: 150px;
-  left: 20px;
-  top: -144px;
 }
