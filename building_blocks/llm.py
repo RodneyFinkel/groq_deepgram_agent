@@ -25,3 +25,4 @@ def streaming():
 
 # batch()
 streaming()
+# batch()
