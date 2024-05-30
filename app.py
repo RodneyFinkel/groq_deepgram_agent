@@ -17,10 +17,9 @@ def index():
 # Route for processing transcription
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
-    if request.method == 'POST':
-        # Start the transcription process asynchronously
-        asyncio.run(process_transcription())
-        return 'Transcription started successfully'
+    # Start the transcription process asynchronously
+    asyncio.run(process_transcription())
+    return 'Transcription started successfully'
 
 # Function to process transcription asynchronously
 async def process_transcription():
@@ -28,6 +27,7 @@ async def process_transcription():
 
 # Callback function to handle transcribed text
 def handle_transcribed_text(text):
+    print(f"handle_transcribed_text: {text}")
     # Update the transcript collector with the transcribed text
     transcript_collector.add_part(text)
     # New: Emit the transcribed text to the client via WebSocket
@@ -40,8 +40,9 @@ manager.transcription_callback = handle_transcribed_text
 # Route to get the full transcript
 @app.route('/full_transcript', methods=['GET'])
 def get_full_transcript():
-    full_sentence = transcript_collector.get_full_transcript()
-    return jsonify({'full_sentence': full_sentence})
+    full_transcript = transcript_collector.get_full_transcript()
+    print(f"app_debug_test: {full_transcript}")
+    return jsonify({'full_sentence': full_transcript})
     # return render_template('full_transcript.html', items=full_sentence)
 
 # WebSocket event handlers

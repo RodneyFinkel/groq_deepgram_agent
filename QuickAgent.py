@@ -188,6 +188,7 @@ async def get_transcript(callback):
 
         # Indicate that we've finished
         await dg_connection.finish()
+        print('Finished')
 
     except Exception as e:
         print(f"Could not open socket: {e}")
