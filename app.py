@@ -53,10 +53,6 @@ def handle_connect():
 def handle_disconnect():
     print('Client disconnected')
     
-# @socketio.on('my event')
-# def handle_custom_event(json):
-#     print('Received event:' + str(json))
-#     emit('my response', {'data': 'response from server' })
 
 if __name__ == '__main__':
     # loop = asyncio.get_event_loop()

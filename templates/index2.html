@@ -67,6 +67,7 @@
             fetch('/full_transcript')
                 .then(response => response.json())  // Expecting HTML content, so use .text()
                 .then(data => {
+                    console.log(data) // Inspect the structure of data.full_sentence
                     var iframe = document.getElementById('transcriptFrame');
                     var doc = iframe.contentDocument || iframe.contentWindow.document;
                     doc.open();

@@ -124,11 +124,14 @@ class TranscriptCollector:
         self.transcript_parts = []
 
     def add_part(self, part):
+        print(f"Adding part: {part}") # debug
         self.transcript_parts.append(part)
 
     def get_full_transcript(self):
-        return ' '.join(self.transcript_parts)
-
+        full_transcript =  ' '.join(self.transcript_parts)
+        print(f"Full transcript: {full_transcript}") # debug
+        return full_transcript
+    
 transcript_collector = TranscriptCollector()
 
 async def get_transcript(callback):
