@@ -65,7 +65,7 @@
         // Function to fetch the latest transcript and update the iframe
         function updateTranscript() {
             fetch('/full_transcript')
-                .then(response => response.json())  // Expecting HTML content, so use .text()
+                .then(response => response.json())  // Expecting HTML content, so use .text() if json then .json()
                 .then(data => {
                     console.log(data) // Inspect the structure of data.full_sentence
                     var iframe = document.getElementById('transcriptFrame');
@@ -75,7 +75,7 @@
                     doc.close();
                 })
                 .catch(error => {
-                    console.error('Error fetching transcript:', error);
+                    console.error('Error fetching transcript:', error);                 
                 });
         }
 
