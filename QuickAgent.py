@@ -161,6 +161,7 @@ async def get_transcript(callback):
                     callback(full_sentence)  # Call the callback with the full_sentence
                     transcript_collector.reset()
                     transcription_complete.set()  # Signal to stop transcription and exit
+                    
 
         dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
 

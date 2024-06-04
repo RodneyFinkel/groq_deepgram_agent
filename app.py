@@ -38,11 +38,11 @@ async def process_transcription():
     await manager.main()
 
 
-# Sample transcript text
-transcript_text = "This is a sample transcript."
+
 # Route to get the full transcript
 @app.route('/full_transcript', methods=['GET'])
 def get_full_transcript_endpoint():
+    transcript_text = "This is a sample transcript."
     full_transcript = transcript_collector.get_full_transcript()
     print(f"app_debug_test: {full_transcript}")
     print(f"Returning transcript: {transcript_text}")
