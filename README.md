@@ -23,10 +23,11 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 ###Replace <version> with the actual version directory inside C:\ffmpeg (e.g., ffmpeg-5.1-essentials_build)###
 
 LAUNCH FLASK WEB APP:
-python3 app.py 
+python3 app2.py 
+![Screen Shot 2024-06-14 at 1 39 37](https://github.com/RodneyFinkel/groq_deepgram_agent/assets/111357994/19baa267-1189-4375-a38d-06b4a7a55274)
 
 
-<img width="758" alt="Screen Shot 2024-06-13 at 17 13 03" src="https://github.com/RodneyFinkel/groq_deepgram_agent/assets/111357994/dd96a3bf-63a1-48b2-a991-2d9cfa55f35d">
+
 
 
 
