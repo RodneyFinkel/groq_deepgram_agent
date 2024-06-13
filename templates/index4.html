@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuickAgent</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #transcript, #llm_response {
+            background-color: #000;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            height: 600px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: monospace;
+            white-space: pre-wrap; /* This keeps the text formatting */
+        }
+
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        async function startTranscription() {
+            const response = await fetch('/start_transcription', {
+                method: 'POST',
+            });
+            const data = await response.json();
+            document.getElementById('status').innerText = data.status;
+            fetchUpdates();
+        }
+
+        async function stopTranscription() {
+            const response = await fetch('/stop_transcription', {
+                method: 'POST',
+            });
+            const data = await response.json();
+            document.getElementById('status').innerText = data.status;
+        }
+
+        async function fetchUpdates() {
+            const response = await fetch('/get_data');
+            const data = await response.json();
+            document.getElementById('transcript').innerText = data.transcript || "No transcript available.";
+            document.getElementById('llm_response').innerText = data.llm_response || "No response yet.";
+
+            // Continue polling every 2 seconds for updates
+            setTimeout(fetchUpdates, 2000);
+        }
+    </script>
+
+</head>
+<body>
+    <nav class="navbar">
+        <img class="navbar-logo" src="{{ url_for('static', filename='alep.png') }}" alt="Logo" />
+    </nav>
+    <div class="content">
+        <div class="button-container">
+            <input type="checkbox" id="record" class="mic-checkbox" />
+            <label for="record" class="mic-button" onclick="startTranscription()">
+                <div class="mic">
+                    <div class="mic-button-loader"></div>
+                    <div class="mic-base"></div>
+                </div>
+                <div class="button-message">
+                    <span>&nbsp;</span>
+                    <span> START </span>
+                </div>
+            </label>
+        </div>
+    </div>
+    <h2>STT-LLM-TTS Transcriber</h2>
+    <h2>Deepgram and Grok</h2>
+    <button onclick="stopTranscription()">Stop Transcription</button>
+    <p id="status">Status: Idle</p>
+
+    <span>Realtime speech transcription API</span>
+    <div id="transcript">No transcript available yet.</div>
+
+    <h4>LLM Response</h4>
+    <div id="llm_response">No response yet.</div>
+</body>
+</html>

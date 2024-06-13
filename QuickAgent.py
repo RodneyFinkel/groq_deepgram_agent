@@ -198,6 +198,7 @@ async def get_transcript(callback):
 class ConversationManager:
     def __init__(self):
         self.transcription_response = ""
+        self.llm_response = ''  #NEW
         self.llm = LanguageModelProcessor()
 
     async def main(self):
@@ -212,10 +213,11 @@ class ConversationManager:
             if "goodbye" in self.transcription_response.lower():
                 break
             
-            llm_response = self.llm.process(self.transcription_response)
-
+            self.llm_response = self.llm.process(self.transcription_response) # Changed llm_response to self.llm_response
+            
+                                            
             tts = TextToSpeech()
-            tts.speak(llm_response)
+            tts.speak(self.llm_response)
 
             # Reset transcription_response for the next loop iteration
             self.transcription_response = ""
