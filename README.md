@@ -25,7 +25,8 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 LAUNCH FLASK WEB APP:
 python3 app.py 
 
-<img width="579" alt="Screen Shot 2024-05-25 at 16 27 07" src="https://github.com/RodneyFinkel/groq_deepgram_agent/edit/main/README.md#:~:text=Screen%20Shot-,2024,-%2D06%2D13%20at">
+
+<img width="758" alt="Screen Shot 2024-06-13 at 17 13 03" src="https://github.com/RodneyFinkel/groq_deepgram_agent/assets/111357994/dd96a3bf-63a1-48b2-a991-2d9cfa55f35d">
 
 
 
