@@ -26,9 +26,7 @@ def start_transcription():
 def stop_transcription():
     global transcription_thread
 
-    # Implement logic to stop the transcription process.
     if transcription_thread is not None and transcription_thread.is_alive():
-        # add logic to stop the transcription process.
         transcription_thread = None
         return jsonify({"status": "Transcription stopped"})
     else:
