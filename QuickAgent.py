@@ -219,7 +219,7 @@ class ConversationManager:
             tts.speak(self.llm_response)
 
             # Reset transcription_response for the next loop iteration, maybe change this so the transcription persists
-            self.transcription_response = ""
+            # self.transcription_response = ""
 
 if __name__ == "__main__":
     manager = ConversationManager()
