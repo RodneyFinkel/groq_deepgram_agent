@@ -4,12 +4,8 @@ import threading
 import asyncio
 
 app = Flask(__name__)
-
-# Global instance of ConversationManager
 conversation_manager = ConversationManager()
-
-# Start the transcription process in a separate thread
-transcription_thread = None
+transcription_thread = None # Start the transcription process in a separate thread
 
 @app.route('/')
 def index():
@@ -30,9 +26,9 @@ def start_transcription():
 def stop_transcription():
     global transcription_thread
 
-    # Implement logic to stop the transcription process gracefully.
+    # Implement logic to stop the transcription process.
     if transcription_thread is not None and transcription_thread.is_alive():
-        # Here you would add logic to stop the transcription process.
+        # add logic to stop the transcription process.
         transcription_thread = None
         return jsonify({"status": "Transcription stopped"})
     else:
