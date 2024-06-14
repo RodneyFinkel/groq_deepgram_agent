@@ -214,7 +214,7 @@ class ConversationManager:
                 break
             
             self.llm_response = self.llm.process(self.transcription_response) # Changed llm_response to self.llm_response
-                                            
+                                           
             tts = TextToSpeech()
             tts.speak(self.llm_response)
 
