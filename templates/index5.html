@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuickAgent</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 2px solid #1b1c1d; /* Blue border */
+            color: #030b13;
+            font-size: 24px;
+            padding: 5px 15px; /* Similar padding to Aleph button */
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .toggle-btn:hover {
+            background-color: #605255;
+            color: rgb(37, 34, 34);
+        }
+
+
+        .sidebar {
+            height: calc(100% - 40px);
+            width: 2000px;
+            position: fixed;
+            top: 40px; /* Below the navbar */
+            right: 0; /* Positioned to the right */
+            background-color: #090707;
+            padding-top: 40px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            transform: translateX(-100%);
+            transition: transform 0.8s ease;
+            z-index: 999; /* Below the navbar */
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar .button-container {
+            margin: 20px;
+        }
+
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #transcript, #llm_response {
+            background-color: #000;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: monospace;
+            white-space: pre-wrap; /* This keeps the text formatting */
+        }
+
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const transcript = document.getElementById('transcript');
+            const llm_response = document.getElementById('llm_response');
+            sidebar.classList.toggle('open');
+            transcript.classList.toggle('collapsed');
+            llm_response.classList.toggle('collapsed');
+        }
+
+        async function startTranscription() {
+            const response = await fetch('/start_transcription', {
+                method: 'POST',
+            });
+            const data = await response.json();
+            document.getElementById('status').innerText = data.status;
+            fetchUpdates();
+        }
+
+        async function stopTranscription() {
+            const response = await fetch('/stop_transcription', {
+                method: 'POST',
+            });
+            const data = await response.json();
+            document.getElementById('status').innerText = data.status;
+        }
+
+        async function fetchUpdates() {
+            const response = await fetch('/get_data');
+            const data = await response.json();
+            document.getElementById('transcript').innerText = data.transcript || "No transcript available.";
+            document.getElementById('llm_response').innerText = data.llm_response || "No response yet.";
+
+            // Continue polling every 2 seconds for updates
+            setTimeout(fetchUpdates, 2000);
+        }
+    </script>
+
+</head>
+<body>
+    <nav class="navbar">
+        <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
+            <img class="navbar-logo"  src="{{ url_for('static', filename='alep.png') }}" alt="Logo" />
+        </a>
+
+        <button class="toggle-btn" onclick="toggleSidebar()">
+            STT-LLM-TTS
+        </button>
+        
+    </nav>
+
+    <div class="sidebar">
+        <div class="button-container">
+            <div class="content">
+                <div class="button-container">
+                    <input type="checkbox" id="record" class="mic-checkbox" />
+                    <label for="record" class="mic-button" onclick="startTranscription()">
+                        <div class="mic">
+                            <div class="mic-button-loader"></div>
+                            <div class="mic-base"></div>
+                        </div>
+                        <div class="button-message">
+                            <span>&nbsp;</span>
+                            <span> START </span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <h2>STT-LLM-TTS Transcriber</h2>
+            <h2></h2>
+            <button onclick="stopTranscription()">Stop Transcription</button>
+            <p id="status">Status: Idle</p>
+
+            <span>Realtime speech transcription API</span>
+            <div id="transcript">No transcript available yet.</div>
+
+            <span>LLM Response</span>
+            <div id="llm_response">No response yet.</div>
+        </div>
+
+    <!-- <div class="content">
+        <div class="button-container">
+            <input type="checkbox" id="record" class="mic-checkbox" />
+            <label for="record" class="mic-button" onclick="startTranscription()">
+                <div class="mic">
+                    <div class="mic-button-loader"></div>
+                    <div class="mic-base"></div>
+                </div>
+                <div class="button-message">
+                    <span>&nbsp;</span>
+                    <span> START </span>
+                </div>
+            </label>
+        </div>
+    </div>
+    <h2>STT-LLM-TTS Transcriber</h2>
+    <h2></h2>
+    <button onclick="stopTranscription()">Stop Transcription</button>
+    <p id="status">Status: Idle</p>
+
+    <span>Realtime speech transcription API</span>
+    <div id="transcript">No transcript available yet.</div>
+
+    <span>LLM Response</span>
+    <div id="llm_response">No response yet.</div> -->
+</body>
+</html>
