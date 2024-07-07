@@ -39,7 +39,7 @@
             width: 1000px;
             position: fixed;
             top: 40px; /* Below the navbar */
-            right: 0; /* Positioned to the right */
+            left: 0; /* Positioned to the right */
             background-color: #090707;
             padding-top: 40px;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
@@ -69,6 +69,19 @@
 
         button:hover {
             background-color: #0056b3;
+        }
+
+        .main-content {
+            margin-top: 60px; /* Ensure it's below the navbar */
+            padding: 20px;
+            background: url('static/background1.jpg')  no-repeat center center fixed;
+            background-size: cover;
+            min-height: calc(100vh - 50px); /* Full height minus the navbar height */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         #transcript, #llm_response {
@@ -141,6 +154,10 @@
         
     </nav>
 
+    <div class="main-content">
+        <!-- Main content goes here -->
+    </div>
+
     <div class="sidebar">
         <div class="button-container">
             <div class="content">
@@ -172,6 +189,7 @@
         </div>    
             
     </div>
+    
 
     <!-- <div class="content">
         <div class="button-container">
