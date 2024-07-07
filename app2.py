@@ -9,7 +9,7 @@ transcription_thread = None # Start the transcription process in a separate thre
 
 @app.route('/')
 def index():
-    return render_template('index5.html')
+    return render_template('index4.html')
 
 @app.route('/start_transcription', methods=['POST'])
 def start_transcription():
