@@ -58,7 +58,7 @@ body {
 
 .sidebar {
   height: calc(100% - 40px);
-  width: 2000px;
+  width: 1000px;
   position: fixed;
   top: 40px; /* Below the navbar */
   left: 0;

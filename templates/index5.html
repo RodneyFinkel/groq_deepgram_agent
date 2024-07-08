@@ -36,10 +36,10 @@
 
         .sidebar {
             height: calc(100% - 40px);
-            width: 2000px;
+            width: 1000px;
             position: fixed;
-            top: 40px; /* Below the navbar */
-            right: 0; /* Positioned to the right */
+            top: 60px; /* Below the navbar */
+            left: 0; /* Positioned to the right */
             background-color: #090707;
             padding-top: 40px;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
@@ -71,12 +71,26 @@
             background-color: #0056b3;
         }
 
+        .main-content {
+            margin-top: 60px; /* Ensure it's below the navbar */
+            padding: 20px;
+            background: url('static/background1.jpg')  no-repeat center center fixed;
+            background-size: cover;
+            min-height: calc(100vh - 50px); /* Full height minus the navbar height */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
         #transcript, #llm_response {
             background-color: #000;
             color: #fff;
             padding: 10px;
             border-radius: 10px;
             margin: 10px 0;
+            width: 600px;
             height: 300px;
             overflow-y: auto;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -140,6 +154,10 @@
         
     </nav>
 
+    <div class="main-content">
+        <!-- Main content goes here -->
+    </div>
+
     <div class="sidebar">
         <div class="button-container">
             <div class="content">
@@ -157,6 +175,7 @@
                     </label>
                 </div>
             </div>
+        <div>
             <h2>STT-LLM-TTS Transcriber</h2>
             <h2></h2>
             <button onclick="stopTranscription()">Stop Transcription</button>
@@ -167,7 +186,10 @@
 
             <span>LLM Response</span>
             <div id="llm_response">No response yet.</div>
-        </div>
+        </div>    
+            
+    </div>
+    
 
     <!-- <div class="content">
         <div class="button-container">
