@@ -24,9 +24,9 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 
 LAUNCH FLASK WEB APP:
 python3 app2.py 
-![Screenshot](static/Screen Shot 2024-07-14 at 1.00.01.png)
 ![Screen Shot 2024-06-14 at 1 39 37](https://github.com/RodneyFinkel/groq_deepgram_agent/assets/111357994/19baa267-1189-4375-a38d-06b4a7a55274)
 
+![Screen Shot 2024-07-14 at 1 00 01](https://github.com/user-attachments/assets/98452733-2733-4a4f-88e5-e64f3cdbeb75)
 
 
 
