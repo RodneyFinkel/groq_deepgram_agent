@@ -16,7 +16,7 @@ def start_transcription():
     global transcription_thread
 
     if transcription_thread is None or not transcription_thread.is_alive():
-        transcription_thread = threading.Thread(target=run_transcription)
+        transcription_thread = threading.Thread(target=conversation_manager.run_transcription)
         transcription_thread.start()
         return jsonify({"status": "Transcription started"})
     else:
@@ -27,6 +27,7 @@ def stop_transcription():
     global transcription_thread
 
     if transcription_thread is not None and transcription_thread.is_alive():
+        conversation_manager.stop_transcription()
         transcription_thread = None
         return jsonify({"status": "Transcription stopped"})
     else:
@@ -41,10 +42,10 @@ def get_data():
         "llm_response": llm_response
     })
 
-def run_transcription():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(conversation_manager.main())
+# def run_transcription():
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+#     loop.run_until_complete(conversation_manager.main())
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -200,6 +200,7 @@ class ConversationManager:
         self.transcription_response = ""
         self.llm_response = ''  #NEW
         self.llm = LanguageModelProcessor()
+        self.transcription_active = False
 
     async def main(self):
         def handle_full_sentence(full_sentence):
@@ -217,9 +218,19 @@ class ConversationManager:
                                            
             tts = TextToSpeech()
             tts.speak(self.llm_response)
+            self.transcription_response = ''
 
             # Reset transcription_response for the next loop iteration, maybe change this so the transcription persists
             # self.transcription_response = ""
+            
+    def run_transcription(self):
+        self.transcription_active = True
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.main())
+
+    def stop_transcription(self):
+        self.transcription_active = False
 
 if __name__ == "__main__":
     manager = ConversationManager()
