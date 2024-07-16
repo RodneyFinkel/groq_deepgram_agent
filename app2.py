@@ -1,15 +1,69 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
+from flask_mail import Mail, Message
+from flask_session import Session
+import os
 from QuickAgent import ConversationManager
 import threading
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
+from dotenv import load_dotenv
+
+load_dotenv()  
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'
+
+# Configure Flask-Mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
+
+mail = Mail(app)
+
+# Configure Flask-Session
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
+
+# Initialize ThreadPoolExecutor
+executor = ThreadPoolExecutor(max_workers=4)
+
 conversation_manager = ConversationManager()
 transcription_thread = None # Start the transcription process in a separate thread
 
 @app.route('/')
 def index():
     return render_template('index5.html')
+
+@app.route('/signin', methods=['GET', 'POST'])
+def signin():
+    if request.method == 'POST':
+        email = request.form['email']
+        session['email'] = email  # Set session
+        executor.submit(send_welcome_email, email)  # Send email in background
+        # send_welcome_email(email)
+        flash('Welcome email sent successfully!', 'success')
+        return redirect(url_for('dashboard'))
+    return render_template('signin.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'email' not in session:
+        return redirect(url_for('signin'))
+    return render_template('dashboard.html')
+
+@app.route('/signout')
+def signout():
+    session.pop('email', None)
+    flash('You have been signed out.', 'info')
+    return redirect(url_for('signin'))
+
+def send_welcome_email(email):
+    msg = Message('Welcome to QuickAgent!', recipients=[email])
+    msg.body = 'Thank you for signing in to QuickAgent. We are excited to have you with us!'
+    mail.send(msg)
 
 @app.route('/start_transcription', methods=['POST'])
 def start_transcription():

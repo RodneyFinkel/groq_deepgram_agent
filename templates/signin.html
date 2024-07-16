@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sign In - QuickAgent</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style3.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+        .main-content {
+            margin-top: 60px; /* Ensure it's below the navbar */
+            padding: 20px;
+            background: url('static/3d-abstract-background-with-modern-plexus-design.jpg')  no-repeat center center fixed;
+            background-size: cover;
+            min-height: calc(100vh - 50px); /* Full height minus the navbar height */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="main-content">
+    <h1>Sign In</h1>
+    <form method="POST" action="{{ url_for('signin') }}">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+        <button type="submit">Sign In</button>
+        
+    </form>
+        <div class="text-container">
+            <h2>STT-LLM-TTS Transcriber</h2>
+            <h2>Deepgram and Groq LPU's</h2>
+        </div>
+    </div>
+</body>
+</html>
