@@ -51,10 +51,15 @@ class LanguageModelProcessor:
             prompt=self.prompt,
             memory=self.memory
         )
+        self.pdf_text = "" # Initialize the PDF text
+        
+    def set_pdf_text(self, text):
+        self.pdf_text = text
 
     def process(self, text):
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
-
+        if self.pdf_text:
+            self.memory.chat_memory.add_system_message(self.pdf_text)
         start_time = time.time()
 
         # Go get the response from the LLM
@@ -202,6 +207,9 @@ class ConversationManager:
         self.llm = LanguageModelProcessor()
         self.transcription_active = False
 
+    def set_pdf_text(self, text):
+        self.llm.set_pdf_text(text)
+    
     async def main(self):
         def handle_full_sentence(full_sentence):
             self.transcription_response = full_sentence

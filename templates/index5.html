@@ -155,6 +155,21 @@
             // Continue polling every 2 seconds for updates
             setTimeout(fetchUpdates, 2000);
         }
+
+        async function uploadPDF() {
+            const formData = new FormData();
+            const fileField = document.querySelector('input[type="file"]');
+
+            formData.append('pdf', fileField.files[0]);
+
+            const response = await fetch('/upload_pdf', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            alert(data.status);
+        }
     </script>
 
 </head>
@@ -223,6 +238,11 @@
 
             <span class="llm-response-span">LLM Response</span>
             <div id="llm_response">No response yet.</div>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" name="pdf">
+                <button type="button" onclick="uploadPDF()">Upload PDF</button>
+            </form>
         </div>    
             
     </div>

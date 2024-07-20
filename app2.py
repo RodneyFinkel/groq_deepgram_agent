@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from flask_mail import Mail, Message
 from flask_session import Session
 import os
+import fitz  # PyMuPDF for PDF text extraction
 from QuickAgent import ConversationManager
 import threading
 import asyncio
@@ -32,6 +33,12 @@ executor = ThreadPoolExecutor(max_workers=4)
 
 conversation_manager = ConversationManager()
 transcription_thread = None # Start the transcription process in a separate thread
+
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Ensure the upload folder exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/')
 def index():
@@ -95,6 +102,35 @@ def get_data():
         "transcript": transcript,
         "llm_response": llm_response
     })
+    
+@app.route('/upload_pdf', methods=['POST'])
+def upload_pdf():
+    if 'pdf' not in request.files:
+        return jsonify({"status": "No file part in the request"}), 400
+    
+    file = request.files['pdf']
+    if file.filename == '':
+        return jsonify({"status": "No selected file"}), 400
+    
+    if file and file.filename.endswith('.pdf'):
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+
+        #Extract text from PDF and set it in the ConversationManager
+        text = extract_text_from_pdf(filepath)
+        conversation_manager.set_pdf_text(text)
+    
+        return jsonify({"status": "File uploaded and text extracted"}), 200
+    
+    return jsonify({"status": "Invalid file format. only PDF's are allowed"}), 400
+
+def extract_text_from_pdf(filepath):
+    doc = fitz.open(filepath)
+    text = ''
+    for page in doc:
+        text += page.get_text()
+        
+
 
 # def run_transcription():
 #     loop = asyncio.new_event_loop()
