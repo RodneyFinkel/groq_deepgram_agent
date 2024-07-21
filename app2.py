@@ -132,8 +132,6 @@ def extract_text_from_pdf(filepath):
             text += page.extract_text()
     return text
         
-
-
 # def run_transcription():
 #     loop = asyncio.new_event_loop()
 #     asyncio.set_event_loop(loop)
