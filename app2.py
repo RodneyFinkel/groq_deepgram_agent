@@ -42,7 +42,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/')
 def index():
-    return render_template('index5.html')
+    return render_template('signin.html')
 
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
