@@ -232,11 +232,17 @@
                     </label>
                 </div>
             </div>
+            
         <div>
             <h2>STT-LLM-TTS Transcriber</h2>
             <h2></h2>
-            <button onclick="stopTranscription()">Stop Transcription</button>
-            <p id="status">Status: Idle</p>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <button onclick="stopTranscription()">Stop Transcription</button>
+                <p id="status">Status: Idle</p>
+                <input type="file" name="pdf">
+                <button type="button" onclick="uploadPDF()">RAG Upload</button>
+            </form>
 
             <span class="transcription-api-span">Realtime speech transcription API</span>
             <div id="transcript">No transcript available yet.</div>
@@ -244,10 +250,7 @@
             <span class="llm-response-span">LLM Response</span>
             <div id="llm_response">No response yet.</div>
 
-            <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" name="pdf">
-                <button type="button" onclick="uploadPDF()">Upload PDF</button>
-            </form>
+            
         </div>    
             
     </div>
