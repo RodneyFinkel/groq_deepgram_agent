@@ -55,11 +55,19 @@ class LanguageModelProcessor:
         
     def set_pdf_text(self, text):
         self.pdf_text = text
+        print(f"PDF Text Set: {self.pdf_text[:500]}...")  # Log the first 500 characters of the PDF text
 
     def process(self, text):
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
+        # if self.pdf_text:
+        #     self.memory.chat_memory.add_system_message(self.pdf_text)
         if self.pdf_text:
-            self.memory.chat_memory.add_system_message(self.pdf_text)
+            system_message = f"Reference Document:\n{self.pdf_text}"
+            # Add the system message in a way that it will be included in the prompt
+            #self.memory.save_context({}, {'role': 'system', 'content': system_message})
+            self.memory.save_context({'input': text}, {'output': system_message})
+            print(f"System Message Added: {system_message[:500]}...")  # Log the first 500 characters of the system message
+
         start_time = time.time()
 
         # Go get the response from the LLM

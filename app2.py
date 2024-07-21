@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from flask_mail import Mail, Message
 from flask_session import Session
 import os
-import fitz  # PyMuPDF for PDF text extraction
+import PyPDF2 # PyPDF2 for PDF text extraction
 from QuickAgent import ConversationManager
 import threading
 import asyncio
@@ -125,10 +125,12 @@ def upload_pdf():
     return jsonify({"status": "Invalid file format. only PDF's are allowed"}), 400
 
 def extract_text_from_pdf(filepath):
-    doc = fitz.open(filepath)
-    text = ''
-    for page in doc:
-        text += page.get_text()
+    text = ""
+    with open(filepath, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        for page in reader.pages:
+            text += page.extract_text()
+    return text
         
 
 
