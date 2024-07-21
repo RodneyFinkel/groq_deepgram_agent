@@ -174,7 +174,7 @@
 
 </head>
 <body>
-    
+    {% if 'email' in session %}
     <nav class="navbar">
         <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
             <img class="navbar-logo"  src="{{ url_for('static', filename='alep.png') }}" alt="Logo" />
@@ -188,7 +188,11 @@
                 NN Finbert Stock Screener
             </a>
         </button>
+        <button class="toggle-btn" >
+            <a href="{{ url_for('signout') }}">Sign Out</a>
+        </button>
     </nav>
+    {% endif %}
     
     <h1>Welcome to QuickAgent</h1>
     <p><a href="{{ url_for('signin') }}">Sign In</a></p>
@@ -203,6 +207,7 @@
 
     <div class="main-content">
         <div class="text-container">
+            <h2>Welcome, {{ session['email'] }}</h2>
             <h2>STT-LLM-TTS Transcriber</h2>
             <h2>Deepgram and Groq LPU's</h2>
         </div>
