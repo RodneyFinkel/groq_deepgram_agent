@@ -1,6 +1,6 @@
 # Quick Voice bot demo
 
-This is a demo showing a bot that uses Text-To-Speech, Speech-To-Text, and a language model to have a conversation with a user.
+This is a demo showing an AI Agent that uses Text-To-Speech, Speech-To-Text, and a language model with RAG capabilities to have a conversation with a user.
 
 This demo is set up to use [Deepgram](www.deepgram.com) for the audio service and [Groq](https://groq.com/) the LLM.
 
@@ -24,7 +24,8 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 
 LAUNCH FLASK WEB APP:
 python3 app2.py 
-![Screen Shot 2024-07-22 at 19 27 56](https://github.com/user-attachments/assets/860a47af-f725-4089-bdcb-d2a8b0433374)
+![Screen Shot 2024-07-22 at 19 34 30](https://github.com/user-attachments/assets/162f3d0d-15c4-4295-928f-742548ac4520)
+
 
 ![Screen Shot 2024-06-14 at 1 39 37](https://github.com/RodneyFinkel/groq_deepgram_agent/assets/111357994/19baa267-1189-4375-a38d-06b4a7a55274)
 
