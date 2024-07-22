@@ -4,6 +4,7 @@ from flask_session import Session
 import os
 import PyPDF2 # PyPDF2 for PDF text extraction
 from QuickAgent import ConversationManager
+from DocumentContextManager import DocumentContextManager
 import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -32,6 +33,7 @@ Session(app)
 executor = ThreadPoolExecutor(max_workers=4)
 
 conversation_manager = ConversationManager()
+#context_manager = DocumentContextManager()
 transcription_thread = None # Start the transcription process in a separate thread
 
 UPLOAD_FOLDER = 'uploads'
@@ -118,12 +120,24 @@ def upload_pdf():
 
         #Extract text from PDF and set it in the ConversationManager
         text = extract_text_from_pdf(filepath)
+        # doc_id = file.filename
+        # context_manager.add_document(doc_id, text)
         conversation_manager.set_pdf_text(text)
     
         return jsonify({"status": "File uploaded and text extracted"}), 200
     
     return jsonify({"status": "Invalid file format. only PDF's are allowed"}), 400
 
+# @app.route('/get_context', methods=['POST'])
+# def get_context():
+#     query = request.json.get('query')
+#     if not query:
+#         return jsonify({'status': 'No query provided'}), 400
+    
+#     results = context_manager.get_similar_documents(query)
+#     return jsonify({'results': results})
+
+# Utils function
 def extract_text_from_pdf(filepath):
     text = ""
     with open(filepath, 'rb') as file:
