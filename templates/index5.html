@@ -118,6 +118,11 @@
             margin-top: 10px;
             font-weight: bold;
         }
+
+        #document_list {
+            color: white;
+        }
+        
     </style>
     <script>
         function toggleSidebar() {
@@ -169,6 +174,23 @@
 
             const data = await response.json();
             alert(data.status);
+        }
+
+        async function fetchDocuments() {
+            const response = await fetch('/get_documents');
+            if (!response.ok) {
+                console.error('Network response was not ok:', response.statusText);
+                return;
+            }
+            const data = await response.json();
+            console.log('Documents fetched:', data);  // Add this line to see the fetched data
+            const documentList = document.getElementById('document_list');
+            documentList.innerHTML = '';
+            data.forEach(doc => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `ID: ${doc.doc_id}, Filename: ${doc.filename}, Upload Time: ${new Date(doc.upload_time * 1000).toLocaleString()}, Summary: ${doc.summary}`;
+                documentList.appendChild(listItem);
+            });
         }
     </script>
 
@@ -243,6 +265,9 @@
                 <input type="file" name="pdf">
                 <button type="button" onclick="uploadPDF()">RAG Upload</button>
             </form>
+            <h2>Document Context Management</h2>
+            <button onclick="fetchDocuments()">Fetch Documents</button>
+            <ul id="document_list"></ul>   
 
             <span class="transcription-api-span">Realtime speech transcription API</span>
             <div id="transcript">No transcript available yet.</div>
