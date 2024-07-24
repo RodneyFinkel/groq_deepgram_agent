@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from flask_mail import Mail, Message
 from flask_session import Session
 import os
-import PyPDF2 # PyPDF2 for PDF text extraction
+import PyPDF2 
 from QuickAgent import ConversationManager
 from DocumentContextManager import DocumentContextManager
 import threading
@@ -153,6 +153,17 @@ def get_documents():
     
     return jsonify(documents)
 
+@app.route('/query', methods=['POST'])
+def query():
+    query_text = request.json.get('query')
+    if not query_text:
+        return jsonify({"status": "No query provided"}), 400
+
+    # Process the query with document context
+    response_text = conversation_manager.llm.process(query_text)
+    return jsonify({"response": response_text})
+
+
 # Utils function
 def extract_text_from_pdf(filepath):
     text = ""
@@ -165,10 +176,6 @@ def extract_text_from_pdf(filepath):
         print(f"Error extracting text from PDF: {e}")
     return text
         
-# def run_transcription():
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     loop.run_until_complete(conversation_manager.main())
 
 if __name__ == '__main__':
     app.run(debug=True)

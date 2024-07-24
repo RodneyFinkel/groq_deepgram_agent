@@ -6,6 +6,8 @@ import requests
 import time
 import os
 
+from DocumentContextManager import DocumentContextManager
+
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
@@ -29,12 +31,12 @@ from deepgram import (
 load_dotenv()
 
 class LanguageModelProcessor:
-    def __init__(self):
+    def __init__(self, context_manager=None):
         self.llm = ChatGroq(temperature=0, model_name="mixtral-8x7b-32768", groq_api_key=os.getenv("GROQ_API_KEY"))
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
-        # self.llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-0125", openai_api_key=os.getenv("OPENAI_API_KEY"))
 
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+        self.context_manager = context_manager
 
         # Load the system prompt from a file
         with open('system_prompt.txt', 'r') as file:
@@ -59,18 +61,27 @@ class LanguageModelProcessor:
 
     def process(self, text):
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
-        # if self.pdf_text:
-        #     self.memory.chat_memory.add_system_message(self.pdf_text)
+        
         if self.pdf_text:
             system_message = f"Reference Document:\n{self.pdf_text}"
             # Add the system message in a way that it will be included in the prompt
-            #self.memory.save_context({}, {'role': 'system', 'content': system_message})
             self.memory.save_context({'input': text}, {'output': system_message})
             print(f"System Message Added: {system_message[:50]}...")  # Log the first 50 characters of the system message
 
+        # Retrieve similar documents based on the user query
+        if self.context_manager:
+            similar_docs = self.context_manager.get_similar_documents(text)
+            context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
+        else:
+            context = ""
+        
+        if context:
+            system_message = f"Reference Document Context:\n{context}"
+            self.memory.save_context({'input': text}, {'ouput': system_message})
+            print(f"System Message: {system_message[:50]}...Added")
+         
         start_time = time.time()
-
-        # Go get the response from the LLM
+        # get the response from the LLM
         response = self.conversation.invoke({"text": text})
         end_time = time.time()
 
@@ -147,6 +158,7 @@ class TranscriptCollector:
     
 transcript_collector = TranscriptCollector()
 
+
 async def get_transcript(callback):
     transcription_complete = asyncio.Event()  # Event to signal transcription completion
 
@@ -211,8 +223,9 @@ async def get_transcript(callback):
 class ConversationManager:
     def __init__(self):
         self.transcription_response = ""
-        self.llm_response = ''  #NEW
-        self.llm = LanguageModelProcessor()
+        self.llm_response = '' 
+        self.context_manager = DocumentContextManager() 
+        self.llm = LanguageModelProcessor(context_manager=self.context_manager)
         self.transcription_active = False
 
     def set_pdf_text(self, text):
@@ -222,23 +235,17 @@ class ConversationManager:
         def handle_full_sentence(full_sentence):
             self.transcription_response = full_sentence
 
-        # Loop indefinitely until "goodbye" is detected
         while True:
             await get_transcript(handle_full_sentence)
-            
-            # Check for "goodbye" to exit the loop
             if "goodbye" in self.transcription_response.lower():
                 break
             
-            self.llm_response = self.llm.process(self.transcription_response) # Changed llm_response to self.llm_response
-                                           
+            self.llm_response = self.llm.process(self.transcription_response)                            
             tts = TextToSpeech()
             tts.speak(self.llm_response)
-            self.transcription_response = ''
-
             # Reset transcription_response for the next loop iteration, maybe change this so the transcription persists
-            # self.transcription_response = ""
-            
+            self.transcription_response = ''
+       
     def run_transcription(self):
         self.transcription_active = True
         loop = asyncio.new_event_loop()

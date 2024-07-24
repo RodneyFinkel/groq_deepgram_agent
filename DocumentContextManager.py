@@ -41,7 +41,7 @@ class DocumentContextManager:
             similarities[doc_id] = sim[0][0]
         
         sorted_docs = sorted(similarities.items(), key=lambda item: item[1], reverse=True)
-        return sorted_docs[:top_k]
+        return [(doc_id, self.documents[doc_id], self.embeddings[doc_id]) for doc_id, _ in sorted_docs[:top_k]]
 
     def get_document_metadata(self, doc_id):
         return self.metadata.get(doc_id, {})
