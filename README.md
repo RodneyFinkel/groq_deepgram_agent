@@ -1,10 +1,12 @@
 # Quick Voice bot demo
+This demo showcases an AI Agent that leverages Text-To-Speech (TTS), Speech-To-Text (STT), and a language model with Retrieval-Augmented Generation (RAG) capabilities to converse with a user. It utilizes Deepgram for the audio services and Groq for the language model.
 
-This is a demo showing an AI Agent that uses Text-To-Speech, Speech-To-Text, and a language model with RAG capabilities to have a conversation with a user.
+The demo is designed to stream STT and TTS to enhance speed and efficiency.
 
-This demo is set up to use [Deepgram](www.deepgram.com) for the audio service and [Groq](https://groq.com/) the LLM.
-
-This demo utilizes streaming for stt and tts to speed things up.
+Features
+Text-To-Speech (TTS): Converts the AI's textual responses to speech.
+Speech-To-Text (STT): Converts user speech to text.
+Language Model with RAG: Enhances conversation with context retrieval using FinBERT embeddings for document similarity and context management.
 
 INSTALLATION
 macos: 
