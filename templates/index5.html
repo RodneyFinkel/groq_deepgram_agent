@@ -133,6 +133,15 @@
             justify-content: center;
         }
 
+        .clock-container {
+            font-size: 8em; /* Large font size for the clock */
+            color: #000000; /* Black color for the clock */
+            background: none; /* Remove background */
+            padding: 20px;
+            border-radius: 0; /* Remove border radius */
+            margin-bottom: 20px; /* Space between clock and other content */
+        }
+
         .text-container {
             text-align: center; 
         }
@@ -158,6 +167,24 @@
 
         #document_list {
             color: white;
+        }
+
+        .quote-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .quote {
+            font-size: 1.5em;
+            color: black;
+            font-style: italic;
+            margin: 10px 0;
+        }
+
+        .author {
+            font-size: 1em;
+            color: black;
+            margin-top: 5px;
         }
         
     </style>
@@ -262,12 +289,44 @@
                 console.error('Error fetching stock data:', error);
             }
         }
+
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const timeString = `${hours}:${minutes}`;
+            document.getElementById('clock').textContent = timeString;
+        }
+    
+        // Update the clock every minute
+        setInterval(updateClock, 1000);
         
+        async function fetchQuote() {
+            try {
+                const response = await fetch('/quote');
+                const data = await response.json();
+                if (response.ok) {
+                    const quoteContainer = document.getElementById('quote-container');
+                    quoteContainer.innerHTML = `
+                        <div class="quote">"${data.quote}"</div>
+                        <div class="author">- ${data.author}</div>
+                    `;
+                } else {
+                    console.error('Failed to fetch quote:', data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching quote:', error);
+            }
+        }
 
         window.onload = function() {
             fetchWeather();
             fetchStocks();
+            updateClock();
+            fetchQuote();
         };
+
+
 
 
     </script>
@@ -281,7 +340,7 @@
                 <img class="navbar-logo" src="{{ url_for('static', filename='alep.png') }}" alt="Logo">
             </a>
             <button class="toggle-btn" onclick="toggleSidebar()">
-                STT-LLM-TTS
+                GROQ-DEEPGRAM AI Agent
             </button>
             <button class="toggle-btn">
                 <a href='https://rodneyfinkel-stock-screener-app2-lgkrvg.streamlit.app/' target="blank">
@@ -311,12 +370,12 @@
     {% endwith %}
    
     <div class="main-content">
+        <div class="clock-container" id="clock"></div>
         <div class="text-container">
-            <h2>Welcome, {{ session['email'] }}</h2>
-            <h2>STT-LLM-TTS Transcriber and RAG AI Agent</h2>
-            <h2>Deepgram and Groq LPU's</h2>
-            <!-- <div class="stock-ticker" id="stock-ticker"></div> -->
+            <h2>Hello, {{ session['email'] }}</h2>
         </div>
+        <div class="quote-container" id="quote-container"></div>
+        
         
         <div class="stock-ticker" id="stock-ticker">
             <!-- Stock prices will be injected here -->

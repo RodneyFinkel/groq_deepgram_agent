@@ -222,7 +222,27 @@ def get_stocks():
 
     return jsonify(stock_data)
 
+@app.route('/quote')
+def get_quote():
+    api_key = os.getenv('X-Api-Key')
+    category = 'happiness'
+    api_url = 'https://api.api-ninjas.com/v1/quotes?category={}'.format(category)
+    headers = {'X-Api-Key': api_key}
+    try:
+        response = requests.get(api_url, headers=headers)
         
+        if response.status_code == requests.codes.ok:
+            print(response.text)
+            quote_data = response.json()[0]
+            print(quote_data)
+            return jsonify(quote_data)
+        else:
+            return jsonify({'error': 'Failed to fetch quote', 'status_code': response.status_code, 'message': response.text}), response.status_code
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+        
+     
 
 if __name__ == '__main__':
     app.run(debug=True)
