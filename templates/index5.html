@@ -35,6 +35,41 @@
             color: rgb(37, 34, 34);
         }
 
+        .navbar .left {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar .right {
+            display: flex;
+            align-items: center;
+        }
+
+        .weather-widget {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+        }
+
+        .weather-icon {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .stock-ticker {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stock-ticker span {
+            margin: 0 15px;
+            font-size: 18px;
+        }
 
         .sidebar {
             height: calc(100% - 40px);
@@ -194,30 +229,54 @@
                 documentList.appendChild(listItem);
             });
         }
+
+        async function fetchWeather() {
+            const response = await fetch('/weather?city=Jerusalem');
+            const data = await response.json();
+            if (data.error) {
+                document.getElementById('weather').innerText = data.error;
+            } else {
+                document.getElementById('weather').innerHTML = `
+                    <img class="weather-icon" src="http://openweathermap.org/img/wn/${data.icon}.png" alt="Weather Icon">
+                    <span>${data.city}: ${data.temperature}°C, ${data.description}</span>
+                `;
+            }
+        }
+
+        window.onload = function() {
+            fetchWeather();
+        };
+
+
     </script>
 
 </head>
 <body>
     {% if 'email' in session %}
     <nav class="navbar">
-        <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
-            <img class="navbar-logo"  src="{{ url_for('static', filename='alep.png') }}" alt="Logo" />
-        </a>
-
-        <button class="toggle-btn" onclick="toggleSidebar()">
-            STT-LLM-TTS
-        </button>
-        <button class="toggle-btn">
-            <a  href='https://rodneyfinkel-stock-screener-app2-lgkrvg.streamlit.app/' target="blank">
-                NN Finbert Stock Screener
+        <div class="left">
+            <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
+                <img class="navbar-logo" src="{{ url_for('static', filename='alep.png') }}" alt="Logo">
             </a>
-        </button>
-        <button class="toggle-btn" >
-            <a href="{{ url_for('signout') }}">Sign Out</a>
-        </button>
+            <button class="toggle-btn" onclick="toggleSidebar()">
+                STT-LLM-TTS
+            </button>
+            <button class="toggle-btn">
+                <a href='https://rodneyfinkel-stock-screener-app2-lgkrvg.streamlit.app/' target="blank">
+                    NN Finbert Stock Screener
+                </a>
+            </button>
+        </div>
+        <div class="right">
+            <button class="toggle-btn">
+                <a href="{{ url_for('signout') }}">Sign Out</a>
+            </button>
+            <div class="weather-widget" id="weather"></div>
+        </div>
     </nav>
     {% endif %}
-    
+
+   
     <h1>Welcome to QuickAgent</h1>
     <p><a href="{{ url_for('signin') }}">Sign In</a></p>
 
@@ -228,12 +287,13 @@
             {% endfor %}
         {% endif %}
     {% endwith %}
-
+   
     <div class="main-content">
         <div class="text-container">
             <h2>Welcome, {{ session['email'] }}</h2>
             <h2>STT-LLM-TTS Transcriber and RAG AI Agent</h2>
             <h2>Deepgram and Groq LPU's</h2>
+            <!-- <div class="stock-ticker" id="stock-ticker"></div> -->
         </div>
         
         

@@ -2,6 +2,8 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from flask_mail import Mail, Message
 from flask_session import Session
 import os
+import requests
+import yfinance as yf
 import PyPDF2 
 from QuickAgent import ConversationManager
 from DocumentContextManager import DocumentContextManager
@@ -175,6 +177,49 @@ def extract_text_from_pdf(filepath):
     except Exception as e:
         print(f"Error extracting text from PDF: {e}")
     return text
+
+@app.route('/weather')
+def get_weather():
+    city = request.args.get('city', 'Jerusalem')  # Default to San Francisco if no city provided
+    api_key = os.getenv('OPENWEATHER_API_KEY')
+    weather_url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric'
+    
+    try:
+        response = requests.get(weather_url)
+        weather_data = response.json()
+        if weather_data['cod'] == 200:
+            weather = {
+                'temperature': weather_data['main']['temp'],
+                'description': weather_data['weather'][0]['description'],
+                'city': weather_data['name'],
+                'icon': weather_data['weather'][0]['icon']
+            }
+        else:
+            weather = {'error': 'City not found'}
+    except Exception as e:
+        weather = {'error': str(e)}
+    
+    return jsonify(weather)
+
+# @app.route('/stocks')
+# def get_stocks():
+#     stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
+#     stock_data = []
+
+#     try:
+#         for symbol in stock_symbols:
+#             stock = yf.Ticker(symbol)
+#             stock_info = stock.history(period="1d")
+#             price = stock_info['Close'].iloc[-1] if not stock_info.empty else 'N/A'
+#             stock_data.append({
+#                 'symbol': symbol,
+#                 'price': stock_info['regularMarketPrice'],
+#                 'name': stock_info['shortName']
+#             })
+#     except Exception as e:
+#         return jsonify({'error': str(e)})
+
+#     return jsonify(stock_data)
         
 
 if __name__ == '__main__':
