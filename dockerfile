@@ -8,6 +8,7 @@ ENV PYTHONUNBUFFERED 1
 RUN apt-get update && apt-get install -y \
     portaudio19-dev \
     gcc \
+    ffmpeg\
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,4 +25,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/
 
 # Command to run the application
-CMD ["python3", "/app/app.py"]
+CMD ["python3", "app2.py"]
