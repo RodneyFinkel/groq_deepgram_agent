@@ -201,25 +201,27 @@ def get_weather():
     
     return jsonify(weather)
 
-# @app.route('/stocks')
-# def get_stocks():
-#     stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
-#     stock_data = []
+@app.route('/stocks')
+def get_stocks():
+    stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
+    stock_data = []
 
-#     try:
-#         for symbol in stock_symbols:
-#             stock = yf.Ticker(symbol)
-#             stock_info = stock.history(period="1d")
-#             price = stock_info['Close'].iloc[-1] if not stock_info.empty else 'N/A'
-#             stock_data.append({
-#                 'symbol': symbol,
-#                 'price': stock_info['regularMarketPrice'],
-#                 'name': stock_info['shortName']
-#             })
-#     except Exception as e:
-#         return jsonify({'error': str(e)})
+    try:
+        for symbol in stock_symbols:
+            stock = yf.Ticker(symbol)
+            stock_info = stock.info
+            price = stock_info.get('currentPrice', 'N/A')
+            if price == 'N/A':
+                price = stock_info.get('regularMarketPrice', 'N/A')  # Fallback to another field if needed
+            stock_data.append({
+                'symbol': symbol,
+                'price': price
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
-#     return jsonify(stock_data)
+    return jsonify(stock_data)
+
         
 
 if __name__ == '__main__':
