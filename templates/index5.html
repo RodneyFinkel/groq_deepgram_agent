@@ -294,6 +294,7 @@
         // Update stock quotes every hour
         setInterval(fetchStocks, 100000);
 
+        
         function updateClock() {
             const now = new Date();
             const hours = String(now.getHours()).padStart(2, '0');
@@ -301,9 +302,9 @@
             const timeString = `${hours}:${minutes}`;
             document.getElementById('clock').textContent = timeString;
         }
-    
         // Update the clock every minute
         setInterval(updateClock, 1000);
+
         
         async function fetchQuote() {
             try {
@@ -322,7 +323,6 @@
                 console.error('Error fetching quote:', error);
             }
         }
-
         // Update quotes every hour
         setInterval(fetchQuote, 600000);
 
