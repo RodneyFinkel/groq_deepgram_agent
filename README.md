@@ -1,11 +1,10 @@
-# Quick Voice bot demo
-This demo showcases an AI Agent that leverages Text-To-Speech (TTS), Speech-To-Text (STT), and a Language Model with RAG: Enhances conversation with context retrieval using FinBERT embeddings for document similarity and context management. It utilizes Deepgram for the audio services and Groq for the language model.
-
+# AI Rag Agent demo
+This demo showcases an AI RAG Agent that leverages Text-To-Speech (TTS) using DeepGram, Speech-To-Text (STT) using Groq LPU's, and the BERT LLM to build vector embedding for the user message and uploaded documents that undergo Cosine similarity testing to find the most relevant documents for context management. 
 The demo is designed to stream STT and TTS to enhance speed and efficiency.
 
 INSTALLATION
 macos: 
-1. brew install ffmpeg
+1. brew install ffmpeg and portaudio
 2. pip install -r requirements.txt 
 
 windows powershell:
