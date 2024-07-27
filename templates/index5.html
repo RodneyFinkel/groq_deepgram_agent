@@ -291,6 +291,8 @@
                 console.error('Error fetching stock data:', error);
             }
         }
+        // Update stock quotes every hour
+        setInterval(fetchStocks, 100000);
 
         function updateClock() {
             const now = new Date();
@@ -320,6 +322,10 @@
                 console.error('Error fetching quote:', error);
             }
         }
+
+        // Update quotes every hour
+        setInterval(fetchQuote, 600000);
+
         // Update the background
         const backgrounds = [
             'static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg',
@@ -337,7 +343,7 @@
             currentIndex = (currentIndex + 1) % backgrounds.length;
         }
 
-        // Change background every 10 seconds
+        // Change background every 20 seconds
         setInterval(changeBackground, 20000);
 
         window.onload = function() {
@@ -373,10 +379,6 @@
         </div>
     </nav>
     {% endif %}
-
-   
-
-    <p><a href="{{ url_for('signin') }}">Sign In</a></p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

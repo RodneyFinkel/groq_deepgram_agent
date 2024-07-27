@@ -205,7 +205,7 @@ def get_weather():
 
 @app.route('/stocks')
 def get_stocks():
-    stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA']
+    stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA']
     stock_data = []
 
     try:
