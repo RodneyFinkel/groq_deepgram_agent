@@ -125,7 +125,7 @@
         .main-content {
             margin-top: 60px; /* Ensure it's below the navbar */
             padding: 20px;
-            background: url('static/3d-abstract-background-with-modern-plexus-design.jpg')  no-repeat center center fixed;
+            background: url('static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg')  no-repeat center center fixed;
             background-size: cover;
             min-height: calc(100vh - 50px); /* Full height minus the navbar height */
             width: 100%;
@@ -321,11 +321,31 @@
             }
         }
 
+        const backgrounds = [
+            'static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg',
+            'static/backgrounds/white-mesh.jpg',
+            'static/backgrounds/whiter-mesh.jpg',
+            // Add more background image paths here
+        ];
+
+        let currentIndex = 0;
+
+        function changeBackground() {
+            const mainContent = document.getElementById('main-content');
+            console.log(mainContent); // Debugging line
+            mainContent.style.backgroundImage = `url(${backgrounds[currentIndex]})`;
+            currentIndex = (currentIndex + 1) % backgrounds.length;
+        }
+
+        // Change background every 10 seconds
+        setInterval(changeBackground, 10000);
+
         window.onload = function() {
             fetchWeather();
             fetchStocks();
             updateClock();
             fetchQuote();
+            changeBackground();
         };
 
 
@@ -371,7 +391,7 @@
         {% endif %}
     {% endwith %}
    
-    <div class="main-content">
+    <div class="main-content" id="main-content">
         <div class="clock-container" id="clock"></div>
         <div class="text-container">
             <h2>Hello, {{ session['username'] }}</h2>

@@ -234,7 +234,6 @@ def get_quote():
         response = requests.get(api_url, headers=headers)
         
         if response.status_code == requests.codes.ok:
-            print(response.text)
             quote_data = response.json()[0]
             print(quote_data)
             return jsonify(quote_data)
