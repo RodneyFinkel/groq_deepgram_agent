@@ -64,6 +64,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            margin-top: 40px; 
         }
 
         .stock-ticker span {
@@ -359,7 +360,7 @@
     {% endif %}
 
    
-    <h1>Welcome to QuickAgent</h1>
+
     <p><a href="{{ url_for('signin') }}">Sign In</a></p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -373,17 +374,14 @@
     <div class="main-content">
         <div class="clock-container" id="clock"></div>
         <div class="text-container">
-            <h2>Hello, {{ session['email'] }}</h2>
+            <h2>Hello, {{ session['username'] }}</h2>
         </div>
         <div class="quote-container" id="quote-container"></div>
-        
-        
         <div class="stock-ticker" id="stock-ticker">
             <!-- Stock prices will be injected here -->
-        </div>
-        
+        </div>    
     </div>
-
+    
     <div class="sidebar">
         <div class="button-container">
             <div class="content">

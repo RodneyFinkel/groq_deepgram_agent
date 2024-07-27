@@ -52,7 +52,9 @@ def index():
 def signin():
     if request.method == 'POST':
         email = request.form['email']
+        username = request.form['username'] 
         session['email'] = email  # Set session
+        session['username'] = username 
         executor.submit(send_welcome_email, email)  # Send email in background
         # send_welcome_email(email)
         flash('Welcome email sent successfully!', 'success')

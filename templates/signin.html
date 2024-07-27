@@ -37,7 +37,8 @@
     <h1>Sign In</h1>
     <form method="POST" action="{{ url_for('signin') }}">
         <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="text" name="username" placeholder="Username" required>
         <button type="submit">Sign In</button>
         
     </form>
