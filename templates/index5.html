@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style3.css') }}">
-   
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body {
@@ -320,7 +320,7 @@
                 console.error('Error fetching quote:', error);
             }
         }
-
+        // Update the background
         const backgrounds = [
             'static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg',
             'static/backgrounds/white-mesh.jpg',
@@ -338,7 +338,7 @@
         }
 
         // Change background every 10 seconds
-        setInterval(changeBackground, 10000);
+        setInterval(changeBackground, 20000);
 
         window.onload = function() {
             fetchWeather();
@@ -347,9 +347,6 @@
             fetchQuote();
             changeBackground();
         };
-
-
-
 
     </script>
 
@@ -362,18 +359,16 @@
                 <img class="navbar-logo" src="{{ url_for('static', filename='alep.png') }}" alt="Logo">
             </a>
             <button class="toggle-btn" onclick="toggleSidebar()">
-                GROQ-DEEPGRAM AI Agent
+                <i class="fas fa-bars"></i>
             </button>
             <button class="toggle-btn">
                 <a href='https://rodneyfinkel-stock-screener-app2-lgkrvg.streamlit.app/' target="blank">
-                    NN Finbert Stock Screener
+                    <i class="fas fa-chart-line"></i>
                 </a>
             </button>
         </div>
         <div class="right">
-            <button class="toggle-btn">
-                <a href="{{ url_for('signout') }}">Sign Out</a>
-            </button>
+            <a href="{{ url_for('signout') }}" class="fas fa-sign-out-alt"></a>
             <div class="weather-widget" id="weather"></div>
         </div>
     </nav>
