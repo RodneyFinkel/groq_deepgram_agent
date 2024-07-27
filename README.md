@@ -21,10 +21,11 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 
 LAUNCH FLASK WEB APP:
 python3 app2.py 
-![Screen Shot 2024-07-27 at 3 01 09](https://github.com/user-attachments/assets/76b96586-cf53-4b96-831b-fba9464e8f59)
+![Screen Shot 2024-07-27 at 5 50 48](https://github.com/user-attachments/assets/d72bbeb1-447a-4872-85bc-cde071a26e68)
 
 Toggle the sidebar for the AI RAG AGENT
-![Screen Shot 2024-07-27 at 3 02 45](https://github.com/user-attachments/assets/9c5994aa-ac67-4955-bf83-14441a5308dc)
+![Screen Shot 2024-07-27 at 5 52 13](https://github.com/user-attachments/assets/0a5232f8-b239-44d9-8990-d9975fe314e0)
+
 
 ![Screen Shot 2024-06-14 at 1 39 37](https://github.com/RodneyFinkel/groq_deepgram_agent/assets/111357994/19baa267-1189-4375-a38d-06b4a7a55274)
 
