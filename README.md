@@ -21,7 +21,7 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 
 LAUNCH FLASK WEB APP:
 python3 app2.py 
-![Screen Shot 2024-07-27 at 3 02 45](https://github.com/user-attachments/assets/d700b7e1-aa6f-4300-b893-4392d7629756)
+![Screen Shot 2024-07-27 at 3 01 09](https://github.com/user-attachments/assets/76b96586-cf53-4b96-831b-fba9464e8f59)
 
 Toggle the sidebar for the AI RAG AGENT
 
