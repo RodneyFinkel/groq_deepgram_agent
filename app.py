@@ -24,7 +24,7 @@ transcript_collector = TranscriptCollector()
 
 @app.route('/')
 def index():
-    return render_template('index2.html')
+    return render_template('index4.html')
 
 # Route for processing transcription
 @app.route('/transcribe', methods=['POST'])
