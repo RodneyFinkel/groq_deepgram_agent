@@ -6,24 +6,16 @@ import requests
 import yfinance as yf
 import PyPDF2 
 from QuickAgent import ConversationManager
-from dB_DocumentContextManager import DocumentContextManager
+from DocumentContextManager import DocumentContextManager
 import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from database import db, start_db
-from models import User, Document, TranscriptionSession
+
 from dotenv import load_dotenv
 
 load_dotenv()  
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
-
-# SQLAlchemy configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://rodneyfinkel:globular@localhost:5432/agentdb'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-#db = SQLAlchemy(app)
-start_db(app)
 
 # Configure Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -42,7 +34,7 @@ Session(app)
 # Initialize ThreadPoolExecutor
 executor = ThreadPoolExecutor(max_workers=4)
 
-conversation_manager = ConversationManager(app)
+conversation_manager = ConversationManager()
 context_manager = DocumentContextManager()
 transcription_thread = None # Start the transcription process in a separate thread
 
@@ -60,14 +52,7 @@ def index():
 def signin():
     if request.method == 'POST':
         email = request.form['email']
-        username = request.form['username']
-        
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            user = User(email=email, username=username)
-            db.session.add(user)
-            db.session.commit()
-             
+        username = request.form['username'] 
         session['email'] = email  # Set session
         session['username'] = username 
         executor.submit(send_welcome_email, email)  # Send email in background
@@ -88,13 +73,10 @@ def signout():
     flash('You have been signed out.', 'info')
     return redirect(url_for('signin'))
 
-
-# Utils
 def send_welcome_email(email):
     msg = Message('Welcome to QuickAgent!', recipients=[email])
     msg.body = 'Thank you for signing in to QuickAgent. We are excited to have you with us!'
     mail.send(msg)
-    
 
 @app.route('/start_transcription', methods=['POST'])
 def start_transcription():
@@ -140,18 +122,12 @@ def upload_pdf():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(filepath)
 
-        # Extract text from PDF 
+        #Extract text from PDF and set it in the ConversationManager
         text = extract_text_from_pdf(filepath)
-        # Set it in the ConversationManager
         conversation_manager.set_pdf_text(text)
     
-        # doc_id = file.filename
-        # context_manager.add_document(doc_id, text, file.filename)
-        
-        # Use a dB instead
-        doc = Document(filename=file.filename, text=text)
-        db.session.add(doc)
-        db.session.commit()
+        doc_id = file.filename
+        context_manager.add_document(doc_id, text, file.filename)
         
         return jsonify({"status": "File uploaded and text extracted"}), 200
     
@@ -168,32 +144,18 @@ def get_context():
 
 @app.route('/get_documents', methods=['GET'])
 def get_documents():
-    # # Get the list of documents and their metadata from memory
-    # documents = [
-    #     {
-    #         'doc_id': doc_id,
-    #         'filename': metadata['filename'],
-    #         'upload_time': metadata['upload_time'],
-    #         'summary': metadata['summary']
-    #     }
-    #     for doc_id, metadata in context_manager.metadata.items()
-    # ]
-    
-    # return jsonify(documents)
-    
-    # Get the list of documents from the dB
-    documents = Document.query.all()
-    document_list = [
+    # Get the list of documents and their metadata
+    documents = [
         {
-            'doc_id': doc.id,
-            'filename': doc.filename,
-            'upload_time': doc.upload_time,
-            'summary': doc.text[:100]  # Assuming the first 100 characters as the summary instead of another type of summary
+            'doc_id': doc_id,
+            'filename': metadata['filename'],
+            'upload_time': metadata['upload_time'],
+            'summary': metadata['summary']
         }
-        for doc in documents
+        for doc_id, metadata in context_manager.metadata.items()
     ]
     
-    return jsonify(document_list)
+    return jsonify(documents)
 
 @app.route('/query', methods=['POST'])
 def query():
@@ -217,7 +179,6 @@ def extract_text_from_pdf(filepath):
     except Exception as e:
         print(f"Error extracting text from PDF: {e}")
     return text
-
 
 @app.route('/weather')
 def get_weather():

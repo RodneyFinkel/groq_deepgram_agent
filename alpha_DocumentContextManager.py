@@ -1,8 +1,11 @@
+# Not using a DB
+
 import torch
 from transformers import BertTokenizer, BertModel
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import time
+
 
 class DocumentContextManager:
     def __init__(self):

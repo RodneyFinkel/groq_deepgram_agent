@@ -6,7 +6,7 @@ import requests
 import time
 import os
 
-# from dB_DocumentContextManager import DocumentContextManager  ### do the import inside the ConversationManager class ###
+from DocumentContextManager import DocumentContextManager
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
@@ -71,9 +71,7 @@ class LanguageModelProcessor:
         # Retrieve similar documents based on the user query
         if self.context_manager:
             similar_docs = self.context_manager.get_similar_documents(text)
-            # Combine the text of the similar documents
-            #context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  
-            context = " ".join([doc_text for _, doc_text in similar_docs]) # The underscore (_) is a placeholder for the first element (doc_id) which we don't need. doc_text is the second element of the tuple
+            context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
         else:
             context = ""
         
@@ -222,10 +220,7 @@ async def get_transcript(callback):
         return
 
 class ConversationManager:
-    def __init__(self, app):
-        from dB_DocumentContextManager import DocumentContextManager  # Import here to avoid circular import
-        
-        self.app = app
+    def __init__(self):
         self.transcription_response = ""
         self.llm_response = '' 
         self.context_manager = DocumentContextManager() 
@@ -251,11 +246,10 @@ class ConversationManager:
             self.transcription_response = ''
        
     def run_transcription(self):
-        #self.transcription_active = True
-        with self.app.app_context():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(self.main())
+        self.transcription_active = True
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.main())
 
     def stop_transcription(self):
         self.transcription_active = False
