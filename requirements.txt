@@ -36,6 +36,7 @@ Flask==3.0.3
 Flask-Mail==0.10.0
 Flask-Session==0.8.0
 Flask-SocketIO==5.3.6
+Flask-SQLAlchemy==3.1.1
 frozendict==2.4.4
 frozenlist==1.4.1
 fsspec==2024.6.1
@@ -95,6 +96,7 @@ platformdirs==4.2.0
 prompt-toolkit==3.0.43
 prov==2.0.1
 psutil==5.9.8
+psycopg2-binary==2.9.9
 ptyprocess==0.7.0
 pure-eval==0.2.2
 PyAudio==0.2.14
