@@ -1,9 +1,11 @@
 # AI Rag Agent demo
-This demo showcases an AI RAG Agent that leverages Text-To-Speech (TTS) using DeepGram 
-Speech-To-Text (STT) using Groq LPU's
-BERT LLM to build vector embeddings for the user message and uploaded documents that undergo cosine similarity testing to find the most relevant documents for context management 
+This demo showcases an AI RAG Agent that leverages Text-To-Speech (TTS) and Speech-To-Text (STT) for LLM interactions using Deepgram and Groq LPU's.
+
+BERT LLM to build vector embeddings for the user message and uploaded documents that undergo cosine similarity testing to find the most relevant for LLM context management.
+ 
 DB connection through SQLAlchemy for documents, transcription sessions, user registration and vector embeddings of the uploaded documents.
-The demo is designed to stream STT and TTS to enhance speed and efficiency.
+
+The demo is designed to stream STT and TTS to enhance speed.
 
 INSTALLATION
 macos: 
