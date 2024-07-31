@@ -5,8 +5,8 @@ import os
 import requests
 import yfinance as yf
 import PyPDF2 
-from QuickAgent import ConversationManager
-from DocumentContextManager import DocumentContextManager
+from alpha_quickagent import ConversationManager
+from alpha_DocumentContextManager import DocumentContextManager
 import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor

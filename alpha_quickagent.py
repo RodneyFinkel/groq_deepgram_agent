@@ -6,7 +6,7 @@ import requests
 import time
 import os
 
-from DocumentContextManager import DocumentContextManager
+from alpha_DocumentContextManager import DocumentContextManager
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
