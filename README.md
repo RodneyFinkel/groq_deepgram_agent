@@ -40,3 +40,14 @@ Toggle the sidebar for the AI RAG AGENT
 
 CLI:
 python3 Quickagent.py
+
+Create .env file for: 
+GROQ_API_KEY = ""
+DEEPGRAM_API_KEY = ""
+
+MAIL_USERNAME = ""
+MAIL_PASSWORD = ""
+MAIL_DEFAULT_SENDER = ""
+
+OPENWEATHER_API_KEY = ""
+X-Api-Key = 
