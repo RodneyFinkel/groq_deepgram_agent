@@ -221,7 +221,7 @@ def extract_text_from_pdf(filepath):
 
 @app.route('/weather')
 def get_weather():
-    city = request.args.get('city', 'Jerusalem')  
+    city = request.args.get('city', 'Haifa')  
     api_key = os.getenv('OPENWEATHER_API_KEY')
     weather_url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric'
     

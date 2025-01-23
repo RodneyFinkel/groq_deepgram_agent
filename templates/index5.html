@@ -57,6 +57,46 @@
             margin-right: 10px;
         }
 
+/* Container for the ticker */
+.stock-ticker-container {
+    width: 100%;  /* Full width of the parent container */
+   /* overflow: hidden;  /* Hide anything outside the container */
+    position: relative;
+}
+
+/* The actual ticker band that moves */
+.stock-ticker {
+    display: flex; /* Align the tickers in a row */
+    /*white-space: nowrap; /* Prevent wrapping of tickers */
+    animation: scrollTicker 30s linear infinite; /* Animation for scrolling */
+}
+
+/* Each stock ticker item */
+.stock-item {
+    padding: 10px 20px;
+    font-size: 16px;
+    text-align: center;
+    flex-shrink: 0;  /* Prevent shrinking */
+}
+
+/* Animation for scrolling */
+@keyframes scrollTicker {
+    0% {
+        transform: translateX(100%); /* Start position, off-screen to the right */
+    }
+    100% {
+        transform: translateX(-100%); /* End position, off-screen to the left */
+    }
+}
+
+/* Optionally, style indices differently */
+.stock-item:contains('(Index)') {
+    font-weight: bold;
+    color: #007BFF; /* Change color for indices */
+}
+
+
+
         .stock-ticker {
             background-color: #333;
             color: white;
@@ -260,7 +300,7 @@
         }
 
         async function fetchWeather() {
-            const response = await fetch('/weather?city=Jerusalem');
+            const response = await fetch('/weather?city=Haifa');
             const data = await response.json();
             if (data.error) {
                 document.getElementById('weather').innerText = data.error;
@@ -272,6 +312,7 @@
             }
         }
 
+        /*
         async function fetchStocks() {
             try {
                 const response = await fetch('/stocks');
@@ -292,7 +333,46 @@
             }
         }
         // Update stock quotes every hour
-        setInterval(fetchStocks, 10000);
+        setInterval(fetchStocks, 100000);
+        */
+
+        async function fetchStocks() {
+            try {
+                const response = await fetch('/stocks');
+                const data = await response.json();
+                if (response.ok) {
+                    const stockTicker = document.getElementById('stock-ticker');
+                    stockTicker.innerHTML = ''; // Clear previous stock data
+                    
+                    data.forEach((stock, index) => {
+                        let displaySymbol = stock.symbol;
+        
+                        // If it's an index, append "Index"
+                        if (stock.symbol.startsWith('^')) {
+                            displaySymbol += " (Index)";
+                        }
+        
+                        // Create stock item elements and append them to the ticker band
+                        const stockElement = document.createElement('div');
+                        stockElement.classList.add('stock-item');
+                        stockElement.textContent = `${displaySymbol}: $${stock.price}`;
+                        stockTicker.appendChild(stockElement);
+                    });
+                } else {
+                    console.error('Failed to fetch stock data:', data.error);
+                }
+            } catch (error) {
+                console.error('Error fetching stock data:', error);
+            }
+        }
+        
+        // Update stock quotes every hour (in milliseconds)
+        setInterval(fetchStocks, 3600000);
+        
+        // Call the function initially to load the stock data immediately
+        fetchStocks();
+        
+        
 
 
         function updateClock() {
@@ -343,7 +423,7 @@
         }
 
         // Change background every 20 seconds
-        setInterval(changeBackground, 50000);
+        setInterval(changeBackground, 10000);
 
         window.onload = function() {
             fetchWeather();
@@ -393,9 +473,10 @@
             <h2>Hello, {{ session['username'] }}</h2>
         </div>
         <div class="quote-container" id="quote-container"></div>
-        <div class="stock-ticker" id="stock-ticker">
-            <!-- Stock prices will be injected here -->
-        </div>    
+        <div class="stock-ticker-container">
+            <div class="stock-ticker" id="stock-ticker">
+                <!-- Stock prices will be injected here -->
+            </div>   
     </div>
     
     <div class="sidebar">

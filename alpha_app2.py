@@ -182,7 +182,7 @@ def extract_text_from_pdf(filepath):
 
 @app.route('/weather')
 def get_weather():
-    city = request.args.get('city', 'Jerusalem')  
+    city = request.args.get('city', 'Haifa')  
     api_key = os.getenv('OPENWEATHER_API_KEY')
     weather_url = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric'
     
@@ -205,7 +205,9 @@ def get_weather():
 
 @app.route('/stocks')
 def get_stocks():
-    stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA']
+    stock_symbols = ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'TSLA', 'NVDA',
+                     'BABA', 'NFLX', 'META', 'AMD', 'DIS', 'SPY', 'PYPL',
+                     'BA', 'JPM', 'INTC', 'V', 'UNH', 'WMT']
     stock_data = []
 
     try:
@@ -227,8 +229,7 @@ def get_stocks():
 @app.route('/quote')
 def get_quote():
     api_key = os.getenv('X-Api-Key')
-    category = 'happiness'
-    api_url = 'https://api.api-ninjas.com/v1/quotes?category={}'.format(category)
+    api_url = 'https://api.api-ninjas.com/v1/quotes'
     headers = {'X-Api-Key': api_key}
     try:
         response = requests.get(api_url, headers=headers)
