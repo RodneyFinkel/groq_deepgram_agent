@@ -71,7 +71,14 @@ class LanguageModelProcessor:
         # Retrieve similar documents based on the user query
         if self.context_manager:
             similar_docs = self.context_manager.get_similar_documents(text)
-            context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
+            print(f"Similar Docs: {similar_docs}")
+            # context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
+            # context = " ".join([doc['document'] for doc in similar_docs])  # Extract the document text from each result
+            if similar_docs:
+                # Flatten the document field to get the text
+                context = " ".join([doc['document'][0] for doc in similar_docs if doc['document']])  # Safely access the first item
+            else:
+                context = ""
         else:
             context = ""
         

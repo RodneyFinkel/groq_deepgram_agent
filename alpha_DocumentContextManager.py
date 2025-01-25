@@ -42,7 +42,7 @@ class DocumentContextManager:
     
     # Using chromadb
     def add_document(self, doc_id, text, filename):
-        embedding = self.embed_text(text)
+        embedding = self._embed_text(text)
         metadata = {
             "filename": filename,
             "upload_time": time.time(),
@@ -73,13 +73,21 @@ class DocumentContextManager:
     #  Using chromadb
     
     def get_similar_documents(self, query, top_k=5):
-        query_embedding = self._embed_text(query)
+        query_embedding = self._embed_text(query).tolist()
         results = self.collection.query(
-            query_embeddings=[query_emebedding],
+            query_embeddings=[query_embedding],
             n_results=top_k
         )
-        return [
-            {"doc_id": result_id, "document": document, "metadata": metadata}
-            for result_id, document, metadata in zip(results["ids"], results["documents"], results["metadatas"])
-        ]
+        
+        # Ensure results contain valid data
+        similar_docs = []
+        for doc_id, document, metadata in zip(results["ids"], results["documents"], results["metadatas"]):
+            if doc_id and document:  # Check if both doc_id and document exist
+                similar_docs.append({
+                    "doc_id": doc_id[0],  # Extract the first item
+                    "document": document[0],  # Flatten the document list
+                    "metadata": metadata  # Metadata is typically a single dictionary
+                })
+        return similar_docs
+
 
