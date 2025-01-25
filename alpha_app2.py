@@ -243,6 +243,13 @@ def get_quote():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+# Route for inspecting chromadb
+@app.route('/inspect_chroma', methods=['GET'])
+def inspect_chroma():
+    # retrieve all documents
+    all_data = context_manager.collection.get()
+    return jsonify(all_data)
         
      
 if __name__ == '__main__':

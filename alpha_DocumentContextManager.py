@@ -26,6 +26,9 @@ class DocumentContextManager:
             outputs = self.model(**inputs)
         # Mean pooling to get a single vector for the document
         embeddings = outputs.last_hidden_state.mean(dim=1)
+        if embeddings is None or embeddings.shape[0] == 0:
+            raise ValueError("Emebeddings generation failed for text.")
+        print(f"Generated Embedding Shape: {embeddings.shape}")
         return embeddings.cpu().numpy().flatten()
     
     # Using chromadb
@@ -37,6 +40,7 @@ class DocumentContextManager:
             "summary":text[:100]
         }
         
+        print(f"Storing Embedding for Doc ID: {doc_id} with embedding shape:{embedding[:5]}")
         self.collection.add(
             ids=[doc_id],
             embeddings=[embedding.tolist()],
@@ -64,7 +68,8 @@ class DocumentContextManager:
         query_embedding = self._embed_text(query).tolist()
         results = self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=top_k
+            n_results=top_k,
+            include=["documents", "metadatas", "embeddings"]
         )
         
         # Ensure results contain valid data
