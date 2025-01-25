@@ -15,7 +15,7 @@ class DocumentContextManager:
         # self.metadata = {}
         
         # Using chromadb
-        self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=Flase))
+        self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
         self.collection = self.client.get_or_create_collection("documents")
         
         # Load pre-trained model and tokenizer
