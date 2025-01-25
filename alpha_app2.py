@@ -247,9 +247,26 @@ def get_quote():
 # Route for inspecting chromadb
 @app.route('/inspect_chroma', methods=['GET'])
 def inspect_chroma():
-    # retrieve all documents
-    all_data = context_manager.collection.get()
-    return jsonify(all_data)
+    try:
+        # Retrieve all data from the ChromaDB collection
+        all_data = context_manager.collection.get(include=["documents", "metadatas", "embeddings", "ids"])
+        
+        # Add a separate field for truncated embeddings for readability
+        truncated_data = {
+            "ids": all_data["ids"],
+            "documents": all_data["documents"],
+            "metadatas": all_data["metadatas"],
+            "truncated_embeddings": [
+                embedding[:10] for embedding in all_data.get("embeddings", [])  # Show first 10 dimensions
+            ]
+        }
+        
+        # Return the truncated version for debugging purposes
+        return jsonify(truncated_data)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
         
      
 if __name__ == '__main__':
