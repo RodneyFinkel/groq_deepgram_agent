@@ -16,11 +16,13 @@ class DocumentContextManager:
         
         # Using chromadb
         self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
+        print("Chroma Initialized")
         self.collection = self.client.get_or_create_collection("documents")
         
         # Load pre-trained model and tokenizer
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         self.model = BertModel.from_pretrained('bert-base-uncased')
+        print("Bert initialized")
         
     def _embed_text(self, text):
         inputs = self.tokenizer(text, return_tensors='pt', truncation=True, padding=True, max_length=512)
