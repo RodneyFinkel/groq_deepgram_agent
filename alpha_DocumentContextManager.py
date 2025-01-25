@@ -1,4 +1,4 @@
-# Not using a DB
+# Using chromadb
 from chromadb import Client
 from chromadb.config import Settings
 import torch
