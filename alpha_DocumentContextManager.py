@@ -10,10 +10,6 @@ import time
 
 class DocumentContextManager:
     def __init__(self):
-        # self.documents = {}
-        # self.embeddings = {}
-        # self.metadata = {}
-        
         # Using chromadb
         self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
         print("Chroma Initialized")
@@ -31,16 +27,6 @@ class DocumentContextManager:
         # Mean pooling to get a single vector for the document
         embeddings = outputs.last_hidden_state.mean(dim=1)
         return embeddings.cpu().numpy().flatten()
-
-    # def add_document(self, doc_id, text, filename):
-    #     self.documents[doc_id] = text
-    #     embedding = self._embed_text(text)
-    #     self.embeddings[doc_id] = embedding
-    #     self.metadata[doc_id] = {
-    #         'filename': filename,
-    #         'upload_time': time.time(),  # Store upload time
-    #         'summary': text[:100]  # Store a brief summary or the first 100 characters
-    #     }
     
     # Using chromadb
     def add_document(self, doc_id, text, filename):
