@@ -33,19 +33,20 @@ class DocumentContextManager:
     
     # Using chromadb
     def add_document(self, doc_id, text, filename):
-        embedding = self._embed_text(text)
+        clean_text = " ".join(text.split()) # clean up document text
+        embedding = self._embed_text(clean_text)
         metadata = {
             "filename": filename,
             "upload_time": time.time(),
-            "summary":text[:100]
+            "summary":text[:50]
         }
         
-        print(f"Storing Embedding for Doc ID: {doc_id} with embedding shape:{embedding[:5]}")
+        print(f"Storing Embedding for Doc ID: {doc_id} with embedding:{embedding[:5]}")
         self.collection.add(
             ids=[doc_id],
             embeddings=[embedding.tolist()],
             metadatas=[metadata],
-            documents=[text]
+            documents=[clean_text]
         )
 
     # def get_similar_documents(self, query, top_k=5):
@@ -64,7 +65,7 @@ class DocumentContextManager:
     
     #  Using chromadb
     
-    def get_similar_documents(self, query, top_k=5):
+    def get_similar_documents(self, query, top_k=1):
         query_embedding = self._embed_text(query).tolist()
         results = self.collection.query(
             query_embeddings=[query_embedding],

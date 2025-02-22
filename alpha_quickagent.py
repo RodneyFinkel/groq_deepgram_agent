@@ -39,9 +39,9 @@ class LanguageModelProcessor:
         self.context_manager = context_manager
 
         # Load the system prompt from a file
-        with open('system_prompt.txt', 'r') as file:
+        with open('system_prompt2.txt', 'r') as file:
             system_prompt = file.read().strip()
-        
+                    
         self.prompt = ChatPromptTemplate.from_messages([
             SystemMessagePromptTemplate.from_template(system_prompt),
             MessagesPlaceholder(variable_name="chat_history"),
@@ -58,6 +58,13 @@ class LanguageModelProcessor:
     def set_pdf_text(self, text):
         self.pdf_text = text
         print(f"PDF Text Set: {self.pdf_text[:200]}...")  # Log the first 200 characters of the PDF text
+    
+    # Review and implement properly
+    @staticmethod    
+    def chunk_text(text, max_tokens):
+        tokens = text.split()
+        for i in range(0, len(tokens), max_tokens):
+            yield " ".join(tokens[i:i + max_tokens])
 
     def process(self, text):
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
@@ -82,10 +89,20 @@ class LanguageModelProcessor:
         else:
             context = ""
         
+        # Review and implement properly
         if context:
+            max_chunk_tokens = 2000
+            chunks = list(self.chunk_text(context, max_chunk_tokens))
+            print("CHUNKS:", chunks)
+            context = " ".join(chunks[:2])
             system_message = f"Reference Document Context:\n{context}"
             self.memory.save_context({'input': text}, {'ouput': system_message})
             print(f"System Message: {system_message[:50]}...Added")
+            
+        total_tokens = len(text.split()) + len(context.split())
+        if total_tokens > 5000:
+            print(f"Total tokens ({total_tokens}) exceeds the limit.")
+            context = " ".join(chunks[:1]) #Use only the first chunk
          
         start_time = time.time()
         # get the response from the LLM
