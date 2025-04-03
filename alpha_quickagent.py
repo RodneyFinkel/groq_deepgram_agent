@@ -32,7 +32,7 @@ load_dotenv()
 
 class LanguageModelProcessor:
     def __init__(self, context_manager=None):
-        self.llm = ChatGroq(temperature=0, model_name="mixtral-8x7b-32768", groq_api_key=os.getenv("GROQ_API_KEY"))
+        self.llm = ChatGroq(temperature=0, model_name="mistral-saba-24b", groq_api_key=os.getenv("GROQ_API_KEY"))
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
 
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
