@@ -111,8 +111,8 @@ class LanguageModelProcessor:
 
         self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
 
-        elapsed_time = int((end_time - start_time) * 1000)
-        print(f"LLM ({elapsed_time}ms): {response['text']}")
+        # elapsed_time = int((end_time - start_time) * 1000)
+        # print(f"LLM ({elapsed_time}ms): {response['text']}")
         return response['text']
 
 class TextToSpeech:
@@ -152,10 +152,10 @@ class TextToSpeech:
         with requests.post(DEEPGRAM_URL, stream=True, headers=headers, json=payload) as r:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
-                    if first_byte_time is None:  # Check if this is the first chunk received
-                        first_byte_time = time.time()  # Record the time when the first byte is received
-                        ttfb = int((first_byte_time - start_time)*1000)  # Calculate the time to first byte
-                        print(f"TTS Time to First Byte (TTFB): {ttfb}ms\n")
+                    # if first_byte_time is None:  # Check if this is the first chunk received
+                    #     first_byte_time = time.time()  # Record the time when the first byte is received
+                    #     ttfb = int((first_byte_time - start_time)*1000)  # Calculate the time to first byte
+                    #     print(f"TTS Time to First Byte (TTFB): {ttfb}ms\n")
                     player_process.stdin.write(chunk)
                     player_process.stdin.flush()
 
