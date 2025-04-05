@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import subprocess
 import shutil
 import time
-from deepgram import Deepgram
+from deepgram import Deepgram # Not using SDK
 
 # brew install portaudio
 
