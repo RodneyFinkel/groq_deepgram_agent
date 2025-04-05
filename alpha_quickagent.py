@@ -10,7 +10,7 @@ from alpha_DocumentContextManager import DocumentContextManager
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -104,10 +104,10 @@ class LanguageModelProcessor:
             print(f"Total tokens ({total_tokens}) exceeds the limit.")
             context = " ".join(chunks[:1]) #Use only the first chunk
          
-        start_time = time.time()
+        # start_time = time.time()
         # get the response from the LLM
         response = self.conversation.invoke({"text": text})
-        end_time = time.time()
+        # end_time = time.time()
 
         self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
 
