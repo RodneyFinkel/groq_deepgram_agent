@@ -56,7 +56,7 @@ async def get_transcript():
         dg_connection.on(LiveTranscriptionEvents.Error, on_error)
 
         options = LiveOptions(
-            model="nova-2",
+            model="nova-3",
             punctuate=True,
             language="en-US",
             encoding="linear16",
