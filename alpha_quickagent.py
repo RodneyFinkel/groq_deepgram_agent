@@ -146,8 +146,8 @@ class TextToSpeech:
             stderr=subprocess.DEVNULL,
         )
 
-        start_time = time.time()  # Record the time before sending the request
-        first_byte_time = None  # Initialize a variable to store the time when the first byte is received
+        # start_time = time.time()  # Record the time before sending the request
+        # first_byte_time = None  # Initialize a variable to store the time when the first byte is received
 
         with requests.post(DEEPGRAM_URL, stream=True, headers=headers, json=payload) as r:
             for chunk in r.iter_content(chunk_size=1024):
