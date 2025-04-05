@@ -1,3 +1,5 @@
+# Simple SDK example for TTS
+
 from deepgram import DeepgramClient, SpeakOptions
 import os
 from dotenv import load_dotenv

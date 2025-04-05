@@ -214,7 +214,7 @@ async def get_transcript(callback):
         dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
 
         options = LiveOptions(
-            model="nova-2",
+            model="nova-3",
             punctuate=True,
             language="en-US",
             encoding="linear16",

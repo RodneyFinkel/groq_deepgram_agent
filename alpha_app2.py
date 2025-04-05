@@ -10,6 +10,7 @@ from alpha_DocumentContextManager import DocumentContextManager
 import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import time
 
 from dotenv import load_dotenv
 
@@ -221,6 +222,7 @@ def get_stocks():
                 'symbol': symbol,
                 'price': price
             })
+            time.sleep(1) # Avoid hitting the API too fast
     except Exception as e:
         return jsonify({'error': str(e)})
 

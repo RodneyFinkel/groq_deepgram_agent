@@ -92,6 +92,5 @@ def send_tts_request(text):
     player_process.wait()
 
 # Example usage with saving to file
-text = """
-The returns for performance are superlinear."""
+text = """The returns for performance are superlinear."""
 send_tts_request(text)
