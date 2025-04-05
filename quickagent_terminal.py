@@ -9,7 +9,7 @@ import os
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -71,7 +71,7 @@ class LanguageModelProcessor:
 class TextToSpeech:
     # Set your Deepgram API Key and desired voice model
     DG_API_KEY = os.getenv("DEEPGRAM_API_KEY")
-    MODEL_NAME = "aura-helios-en"  # Example model name, change as needed
+    MODEL_NAME = "aura-asteria-en"  # Example model name, change as needed
 
     @staticmethod
     def is_installed(lib_name: str) -> bool:
@@ -82,7 +82,7 @@ class TextToSpeech:
         if not self.is_installed("ffplay"):
             raise ValueError("ffplay not found, necessary to stream audio.")
 
-        DEEPGRAM_URL = f"https://api.deepgram.com/v1/speak?model={self.MODEL_NAME}&performance=some&encoding=linear16&sample_rate=24000"
+        DEEPGRAM_URL = f"https://api.deepgram.com/v1/speak?model={self.MODEL_NAME}"
         headers = {
             "Authorization": f"Token {self.DG_API_KEY}",
             "Content-Type": "application/json"
@@ -91,7 +91,7 @@ class TextToSpeech:
             "text": text
         }
 
-        player_command = ["ffplay", "-autoexit", "-", "-nodisp"]
+        player_command = ["ffplay","-nodisp", "-autoexit", "-i", "pipe:0"]
         player_process = subprocess.Popen(
             player_command,
             stdin=subprocess.PIPE,
