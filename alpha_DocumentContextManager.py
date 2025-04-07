@@ -49,19 +49,6 @@ class DocumentContextManager:
             documents=[clean_text]
         )
 
-    # def get_similar_documents(self, query, top_k=5):
-    #     query_embedding = self._embed_text(query)
-    #     similarities = {}
-        
-    #     for doc_id, doc_embedding in self.embeddings.items():
-    #         sim = cosine_similarity(query_embedding, doc_embedding)
-    #         similarities[doc_id] = sim[0][0]
-        
-    #     sorted_docs = sorted(similarities.items(), key=lambda item: item[1], reverse=True)
-    #     return [(doc_id, self.documents[doc_id], self.embeddings[doc_id]) for doc_id, _ in sorted_docs[:top_k]]
-
-    # def get_document_metadata(self, doc_id):
-    #     return self.metadata.get(doc_id, {})
     
     #  Using chromadb
     
