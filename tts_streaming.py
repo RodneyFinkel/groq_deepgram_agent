@@ -24,7 +24,6 @@ class TextToSpeech():
             "Content-Type": "application/json"
         }
 
-        # Make a request to the DEEPGRAM API
         response = requests.post(self.DEEPGRAM_API_URL, headers=headers, json=payload, stream=True)
 
         # Launch ffplay process that reads from stdin
