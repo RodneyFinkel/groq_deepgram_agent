@@ -11,7 +11,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #000000;
             margin: 0;
             padding: 20px;
         }
@@ -23,7 +23,7 @@
         .toggle-btn {
             background: transparent;
             border: 2px solid #1b1c1d; /* Blue border */
-            color: #030b13;
+            color: #404449;
             font-size: 24px;
             padding: 5px 15px; /* Similar padding to Aleph button */
             border-radius: 5px;
@@ -32,14 +32,14 @@
 
         .toggle-btn:hover {
             background-color: #605255;
-            color: rgb(37, 34, 34);
+            color: rgb(206, 193, 193);
         }
 
         .navbar{
             position: fixed;
             top: 0;
             width: 100%;
-            height: 60px; /* Adjust based on your navbar height */
+            height: 40px; /* Adjust based on your navbar height */
             
             display: flex;
             
@@ -174,14 +174,14 @@
             padding: 10px 20px;
             margin: 5px;
             border: none;
-            background-color: #007BFF;
+            background-color: #303336;
             color: white;
             border-radius: 5px;
             cursor: pointer;
         }
 
         button:hover {
-            background-color: #0056b3;
+            background-color: #3c4147;
         }
 
         .main-content {
@@ -199,7 +199,7 @@
 
         .clock-container {
             font-size: 8em; /* Large font size for the clock */
-            color: #000000; /* Black color for the clock */
+            color: #fef76a; /* Black color for the clock */
             background: none; /* Remove background */
             padding: 20px;
             border-radius: 0; /* Remove border radius */
@@ -211,7 +211,7 @@
         }
 
         #transcript, #llm_response {
-            background-color: #000;
+            background-color: #141414;
             color: #fff;
             padding: 10px;
             border-radius: 10px;
@@ -222,6 +222,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             font-family: monospace;
             white-space: pre-wrap; 
+            opacity: 0.6
         }
 
         #status {
@@ -240,7 +241,7 @@
 
         .quote {
             font-size: 1.5em;
-            color: black;
+            color: #ffffff;
             font-style: italic;
             margin: 10px 0;
         }
@@ -389,7 +390,7 @@
         }
         
         // Update stock quotes (in milliseconds)
-        setInterval(fetchStocks, 3600000);
+        setInterval(fetchStocks, 3100000);
         
         // Call the function initially to load the stock data immediately
         fetchStocks();
@@ -431,7 +432,7 @@
         // Update the background
         const backgrounds = [
             
-            'static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg',
+            'static/backgrounds/alpha_aleph_x.jpg',
             // Add more background image paths here
         ];
 

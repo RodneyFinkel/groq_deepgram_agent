@@ -38,7 +38,7 @@ class LanguageModelProcessor:
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
         # Load the system prompt from a file
-        with open('system_prompt.txt', 'r') as file:
+        with open('system_prompt3.txt', 'r') as file:
             system_prompt = file.read().strip()
         
         self.prompt = ChatPromptTemplate.from_messages([

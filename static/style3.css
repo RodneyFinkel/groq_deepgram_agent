@@ -2,7 +2,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter");
 
 body {
-  color: #333; /* Darker text color for better contrast on white background */
+  color: #e5dada; /* Darker text color for better contrast on white background */
   display: flex;
   align-items: center;
   font-family: "Inter", sans-serif;
@@ -17,9 +17,9 @@ body {
 /* Navbar styling */
 .navbar {
   width: 100%;
-  background-color: #f8f9fa; /* Light grey background for navbar */
+  background-color: #151515; /* Light grey background for navbar */
   padding: 10px 20px;
-  height: 45px;
+  height: 40px;
   display: flex;
   align-items: center;
   position: fixed;
