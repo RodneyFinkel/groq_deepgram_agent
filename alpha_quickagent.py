@@ -32,7 +32,7 @@ load_dotenv()
 
 class LanguageModelProcessor:
     def __init__(self, context_manager=None):
-        self.llm = ChatGroq(temperature=0, model_name="mistral-saba-24b", groq_api_key=os.getenv("GROQ_API_KEY"))
+        self.llm = ChatGroq(temperature=0, model_name="qwen/qwen3-32b", groq_api_key=os.getenv("GROQ_API_KEY"))
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
 
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -73,7 +73,7 @@ class LanguageModelProcessor:
             system_message = f"Reference Document:\n{self.pdf_text}"
             # Add the system message in a way that it will be included in the prompt
             self.memory.save_context({'input': text}, {'output': system_message})
-            print(f"System Message Added: {system_message[:50]}...")  # Log the first 50 characters of the system message
+            print(f"System Message Added: {system_message[:30]}...")  # Log the first 50 characters of the system message
 
         # Retrieve similar documents based on the user query
         if self.context_manager:
