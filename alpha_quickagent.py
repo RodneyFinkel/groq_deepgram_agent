@@ -39,6 +39,7 @@ class LanguageModelProcessor:
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
+        self.max_history_exchanges = 3
 
         # Load the system prompt from a file
         with open('system_prompt2.txt', 'r') as file:
@@ -128,24 +129,37 @@ class LanguageModelProcessor:
             "chunk_size": chunk_size,
             "chunks": selected_chunks[:5]  # Show first 5 chunks for preview
         }
-            print("CHUNKS:", chunks)
+            print(f"Chunking Info: {self.last_chunking_info}") # Log Chunking Information
             context = context_for_llm
             system_message = f"Reference Document Context:\n{context}"
             self.memory.save_context({'input': text}, {'ouput': system_message})
             print(f"System Message: {system_message[:50]}...Added")
             
-        total_tokens = len(text.split()) + len(context.split())
-        if total_tokens > 5000:
-            print(f"Total tokens ({total_tokens}) exceeds the limit.")
-            context = " ".join(chunks[:1]) #Use only the first chunk
-         
+        # --- Limit conversation history ---
+        # Each exchange is user+AI, so keep last N*2 messages
+        if len(self.memory.chat_memory.messages) > self.max_history_exchanges * 2:
+            self.memory.chat_memory.messages = self.memory.chat_memory.messages[-self.max_history_exchanges*2:]
+
+        # --- Estimate total tokens in prompt ---
+        prompt_messages = self.memory.chat_memory.messages
+        history_text = " ".join([msg.content for msg in prompt_messages])
+        history_tokens = len(self.tokenizer.encode(history_text))
+        context_tokens = len(self.tokenizer.encode(context)) # changed from unbound variable context_for_llm
+        input_tokens = len(self.tokenizer.encode(text))
+        total_prompt_tokens = history_tokens + context_tokens + input_tokens
+
+        # Trim history further if still over limit
+        while total_prompt_tokens > max_total_tokens and len(prompt_messages) > 2:
+            prompt_messages = prompt_messages[2:]  # Remove oldest user+AI pair
+            history_text = " ".join([msg.content for msg in prompt_messages])
+            history_tokens = len(self.tokenizer.encode(history_text))
+            total_prompt_tokens = history_tokens + context_tokens + input_tokens
+        self.memory.chat_memory.messages = prompt_messages 
         # start_time = time.time()
-        # get the response from the LLM
+        # ______Call the LLM_______
         response = self.conversation.invoke({"text": text})
         # end_time = time.time()
-
         self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
-
         # elapsed_time = int((end_time - start_time) * 1000)
         # print(f"LLM ({elapsed_time}ms): {response['text']}")
         return response['text']
