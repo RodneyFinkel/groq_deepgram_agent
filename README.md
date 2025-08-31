@@ -30,6 +30,7 @@ python3 app2.py
 
 Toggle the sidebar for the AI RAG AGENT
 ![Screen Shot 2024-07-27 at 5 52 13](https://github.com/user-attachments/assets/0a5232f8-b239-44d9-8990-d9975fe314e0)
+<img width="1680" height="1050" alt="Screenshot 2025-08-31 at 3 12 15" src="https://github.com/user-attachments/assets/b02798bd-3dfc-4f67-8002-b00646e67fa1" />
 
 
 ![Screen Shot 2024-06-14 at 1 39 37](https://github.com/RodneyFinkel/groq_deepgram_agent/assets/111357994/19baa267-1189-4375-a38d-06b4a7a55274)
