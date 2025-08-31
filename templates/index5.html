@@ -170,6 +170,19 @@
             
         }
 
+        .chunking-config, .chunking-info {
+    margin-top: 20px;
+}
+
+/* Hide scrollbar for sidebar when .hide-scrollbar is added */
+.sidebar.hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE 10+ */
+}
+.sidebar.hide-scrollbar::-webkit-scrollbar { /* Chrome, Safari, Opera */
+    display: none;
+}
+
         button {
             padding: 10px 20px;
             margin: 5px;
@@ -463,14 +476,61 @@
         // Change background every 20 seconds
         setInterval(changeBackground, 100000);
 
-        window.onload = function() {
-            fetchWeather();
-            fetchStocks();
-            updateClock();
-            fetchQuote();
-            changeBackground();
-        };
+        async function fetchChunkingConfig() {
+    const response = await fetch('/get_chunking_config');
+    const config = await response.json();
+    document.getElementById('chunk_size_ingest').value = config.chunk_size_ingest;
+    document.getElementById('chunk_overlap_ingest').value = config.chunk_overlap_ingest;
+    document.getElementById('chunk_size_llm').value = config.chunk_size_llm;
+    document.getElementById('chunk_overlap_llm').value = config.chunk_overlap_llm;
+}
 
+async function updateChunkingConfig() {
+    const config = {
+        chunk_size_ingest: document.getElementById('chunk_size_ingest').value,
+        chunk_overlap_ingest: document.getElementById('chunk_overlap_ingest').value,
+        chunk_size_llm: document.getElementById('chunk_size_llm').value,
+        chunk_overlap_llm: document.getElementById('chunk_overlap_llm').value
+    };
+    await fetch('/set_chunking_config', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(config)
+    });
+    alert('Chunking configuration updated!');
+    fetchChunkingInfo();
+}
+
+async function fetchChunkingInfo() {
+    const response = await fetch('/get_chunking_info');
+    const info = await response.json();
+    let html = `<b>Num Chunks:</b> ${info.num_chunks || 0}<br><b>Chunk Size:</b> ${info.chunk_size || 0}<br>`;
+    if (info.chunks) {
+        html += `<b>Chunks Preview:</b><br>`;
+        info.chunks.forEach((chunk, idx) => {
+            html += `<div style="color:white; margin-bottom:5px;"><b>Chunk ${idx+1}:</b> ${chunk.substring(0,100)}...</div>`;
+        });
+    }
+    document.getElementById('chunking_info').innerHTML = html;
+}
+
+    // Call these on page load
+    window.onload = function() {
+        fetchWeather();
+        fetchStocks();
+        updateClock();
+        fetchQuote();
+        changeBackground();
+        fetchChunkingConfig();
+        fetchChunkingInfo();
+
+        // Hide sidebar scrollbar after 10 seconds
+        setTimeout(function() {
+            document.querySelector('.sidebar').classList.add('hide-scrollbar');
+        }, 10000);
+};
+
+       
     </script>
 
 </head>
@@ -550,7 +610,24 @@
             <div id="llm_response">No response yet.</div>
 
             
-        </div>    
+             
+
+            <div class="chunking-config">
+                <h2 style="color:white;">Chunking Configuration</h2>
+                <label for="chunk_size_ingest" style="color:white;">Ingest Chunk Size:</label>
+                <input type="number" id="chunk_size_ingest" value="200" min="50" max="2000" style="width:80px;">
+                <label for="chunk_overlap_ingest" style="color:white;">Ingest Overlap:</label>
+                <input type="number" id="chunk_overlap_ingest" value="50" min="0" max="500" style="width:80px;">
+                <label for="chunk_size_llm" style="color:white;">LLM Chunk Size:</label>
+                <input type="number" id="chunk_size_llm" value="2000" min="100" max="5000" style="width:80px;">
+                <label for="chunk_overlap_llm" style="color:white;">LLM Overlap:</label>
+                <input type="number" id="chunk_overlap_llm" value="0" min="0" max="500" style="width:80px;">
+                <button onclick="updateChunkingConfig()">Update Chunking</button>
+            </div>
+            <div class="chunking-info">
+                <h2 style="color:white;">Chunking Info</h2>
+                <div id="chunking_info"></div>
+        </div>
             
     </div>
     

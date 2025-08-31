@@ -7,6 +7,7 @@ import yfinance as yf
 import PyPDF2 
 from alpha_quickagent import ConversationManager
 from alpha_DocumentContextManager import DocumentContextManager
+from chunk_config import CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
 import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -44,6 +45,17 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Ensure the upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Utility Function for chunking text
+def chunk_text(text, chunk_size=1000, overlap=200):
+    words = text.split()
+    chunks = []
+    i = 0
+    while i < len(words):
+        chunk = words[i:i+chunk_size]
+        chunks.append(" ".join(chunk))
+        i += chunk_size - overlap
+    return chunks
 
 @app.route('/')
 def index():
@@ -109,6 +121,36 @@ def get_data():
         "transcript": transcript,
         "llm_response": llm_response
     })
+
+# CHUNK_SIZE_INGEST = 1000
+# CHUNK_OVERLAP_INGEST = 200
+# CHUNK_SIZE_LLM = 2000
+# CHUNK_OVERLAP_LLM = 0
+
+@app.route('/get_chunking_config', methods=['GET'])
+def get_chunking_config():
+    return jsonify({
+        "chunk_size_ingest": CHUNK_SIZE_INGEST,
+        "chunk_overlap_ingest": CHUNK_OVERLAP_INGEST,
+        "chunk_size_llm": CHUNK_SIZE_LLM,
+        "chunk_overlap_llm": CHUNK_OVERLAP_LLM
+    })
+
+@app.route('/set_chunking_config', methods=['POST'])
+def set_chunking_config():
+    global CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
+    data = request.json
+    CHUNK_SIZE_INGEST = int(data.get("chunk_size_ingest", CHUNK_SIZE_INGEST))
+    CHUNK_OVERLAP_INGEST = int(data.get("chunk_overlap_ingest", CHUNK_OVERLAP_INGEST))
+    CHUNK_SIZE_LLM = int(data.get("chunk_size_llm", CHUNK_SIZE_LLM))
+    CHUNK_OVERLAP_LLM = int(data.get("chunk_overlap_llm", CHUNK_OVERLAP_LLM))
+    return jsonify({"status": "Chunking config updated"})
+
+@app.route('/get_chunking_info', methods=['GET'])
+def get_chunking_info():
+    # Example: expose last chunking info from LLM (add this attribute in LanguageModelProcessor)
+    info = getattr(conversation_manager.llm, 'last_chunking_info', {})
+    return jsonify(info)
     
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
@@ -125,12 +167,18 @@ def upload_pdf():
 
         #Extract text from PDF and set it in the ConversationManager
         text = extract_text_from_pdf(filepath)
+        # Chunk text before embedding, use utility function chunk_text
+        # chunks = chunk_text(text, chunk_size=1000, overlap=200)
+        chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
+        for idx, chunk in enumerate(chunks):
+            doc_id = f"{file.filename}_chunk_{idx}"
+            context_manager.add_document(doc_id, chunk, file.filename)
         conversation_manager.set_pdf_text(text)
     
         doc_id = file.filename
         context_manager.add_document(doc_id, text, file.filename)
         
-        return jsonify({"status": "File uploaded and text extracted"}), 200
+        return jsonify({"status": "File uploaded, text extracted and chunked"}), 200
     
     return jsonify({"status": "Invalid file format. only PDF's are allowed"}), 400
 

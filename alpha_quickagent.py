@@ -7,6 +7,8 @@ import time
 import os
 
 from alpha_DocumentContextManager import DocumentContextManager
+from chunk_config import CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
+from transformers import AutoTokenizer
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
@@ -34,7 +36,7 @@ class LanguageModelProcessor:
     def __init__(self, context_manager=None):
         self.llm = ChatGroq(temperature=0, model_name="qwen/qwen3-32b", groq_api_key=os.getenv("GROQ_API_KEY"))
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
-
+        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
 
@@ -60,11 +62,22 @@ class LanguageModelProcessor:
         print(f"PDF Text Set: {self.pdf_text[:200]}...")  # Log the first 200 characters of the PDF text
     
     # Review and implement properly
-    @staticmethod    
-    def chunk_text(text, max_tokens):
-        tokens = text.split()
-        for i in range(0, len(tokens), max_tokens):
-            yield " ".join(tokens[i:i + max_tokens])
+    # @staticmethod    
+    # def chunk_text(text, max_tokens):
+    #     tokens = text.split()
+    #     for i in range(0, len(tokens), max_tokens):
+    #         yield " ".join(tokens[i:i + max_tokens])
+    
+    def chunk_text_by_tokens(self, text, chunk_size=1000, overlap=200):
+        tokens = self.tokenizer.encode(text)
+        chunks = []
+        i = 0
+        while i < len(tokens):
+            chunk_tokens = tokens[i:i+chunk_size]
+            chunk_text = self.tokenizer.decode(chunk_tokens)
+            chunks.append(chunk_text)
+            i += chunk_size - overlap
+        return chunks
 
     def process(self, text):
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
@@ -91,10 +104,32 @@ class LanguageModelProcessor:
         
         # Review and implement properly
         if context:
-            max_chunk_tokens = 2000
-            chunks = list(self.chunk_text(context, max_chunk_tokens))
+            # max_chunk_tokens = CHUNK_SIZE_LLM  # Use global/configurable value
+            # chunks = list(self.chunk_text(context, max_chunk_tokens))
+            max_total_tokens = CHUNK_SIZE_LLM  # e.g., 6000
+            chunk_size = CHUNK_SIZE_LLM // 3   # e.g., 2000
+            overlap = CHUNK_OVERLAP_LLM        # e.g., 0 or 200
+
+            chunks = self.chunk_text_by_tokens(context, chunk_size=chunk_size, overlap=overlap)
+             # Accumulate chunks until token limit is reached
+            selected_chunks = []
+            total_tokens = 0
+            for chunk in chunks:
+                chunk_tokens = len(self.tokenizer.encode(chunk))
+                if total_tokens + chunk_tokens > max_total_tokens:
+                    break
+                selected_chunks.append(chunk)
+                total_tokens += chunk_tokens
+            
+            context_for_llm = " ".join(selected_chunks)
+            
+            self.last_chunking_info = {
+            "num_chunks": len(selected_chunks),
+            "chunk_size": chunk_size,
+            "chunks": selected_chunks[:5]  # Show first 5 chunks for preview
+        }
             print("CHUNKS:", chunks)
-            context = " ".join(chunks[:2])
+            context = context_for_llm
             system_message = f"Reference Document Context:\n{context}"
             self.memory.save_context({'input': text}, {'ouput': system_message})
             print(f"System Message: {system_message[:50]}...Added")
