@@ -23,7 +23,8 @@ powershell -command "Expand-Archive -Path .\ffmpeg-release-essentials.zip -Desti
 setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 ###Replace <version> with the actual version directory inside C:\ffmpeg (e.g., ffmpeg-5.1-essentials_build)###
 
-LAUNCH FLASK WEB APP:
+LAUNC<img width="1680" height="1050" alt="Screenshot 2025-08-31 at 3 03 38" src="https://github.com/user-attachments/assets/c03d8d7a-ed32-4e9a-afbe-22330a00bfb4" />
+H FLASK WEB APP:
 python3 app2.py 
 ![Screen Shot 2024-07-27 at 5 50 48](https://github.com/user-attachments/assets/d72bbeb1-447a-4872-85bc-cde071a26e68)
 
