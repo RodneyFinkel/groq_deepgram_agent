@@ -12,6 +12,7 @@ import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
+from transformers import AutoTokenizer
 
 from dotenv import load_dotenv
 
@@ -46,14 +47,25 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Ensure the upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Pre-load tokenizer globally
+tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+
 # Utility Function for chunking text
-def chunk_text(text, chunk_size=1000, overlap=200):
-    words = text.split()
+def chunk_text(text, chunk_size=384, overlap=CHUNK_OVERLAP_INGEST):
+    #words = text.split()
+    global tokenizer
+    tokens = tokenizer.encode(text, add_special_tokens=False)
     chunks = []
     i = 0
-    while i < len(words):
-        chunk = words[i:i+chunk_size]
-        chunks.append(" ".join(chunk))
+    while i < len(tokens):
+        chunk_tokens = tokens[i:i+chunk_size]
+        # Enforce chunk size limit
+        if len(chunk_tokens) > 510: # Align with BERT limit 
+            chunk_tokens = chunk_tokens[:510]
+        chunk_text_decoded = tokenizer.decode(chunk_tokens, skip_special_tokens=True)
+        chunks.append(chunk_text_decoded)
+        # chunk = words[i:i+chunk_size]
+        # chunks.append(" ".join(chunk))
         i += chunk_size - overlap
     return chunks
 
@@ -168,15 +180,14 @@ def upload_pdf():
         #Extract text from PDF and set it in the ConversationManager
         text = extract_text_from_pdf(filepath)
         # Chunk text before embedding, use utility function chunk_text
-        # chunks = chunk_text(text, chunk_size=1000, overlap=200)
         chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
         for idx, chunk in enumerate(chunks):
             doc_id = f"{file.filename}_chunk_{idx}"
             context_manager.add_document(doc_id, chunk, file.filename)
-        conversation_manager.set_pdf_text(text)
+        # conversation_manager.set_pdf_text(text)
     
-        doc_id = file.filename
-        context_manager.add_document(doc_id, text, file.filename)
+        # doc_id = file.filename
+        # context_manager.add_document(doc_id, text, file.filename)
         
         return jsonify({"status": "File uploaded, text extracted and chunked"}), 200
     

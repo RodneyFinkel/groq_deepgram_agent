@@ -39,7 +39,7 @@ class LanguageModelProcessor:
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
-        self.max_history_exchanges = 3
+        self.max_history_exchanges = 4
 
         # Load the system prompt from a file
         with open('system_prompt2.txt', 'r') as file:
@@ -56,11 +56,11 @@ class LanguageModelProcessor:
             prompt=self.prompt,
             memory=self.memory
         )
-        self.pdf_text = "" # Initialize the PDF text
+        # self.pdf_text = "" # Initialize the PDF text
         
-    def set_pdf_text(self, text):
-        self.pdf_text = text
-        print(f"PDF Text Set: {self.pdf_text[:200]}...")  # Log the first 200 characters of the PDF text
+    # def set_pdf_text(self, text):
+    #     self.pdf_text = text
+    #     print(f"PDF Text Set: {self.pdf_text[:100]}...")  # Log the first 200 characters of the PDF text
     
     # Review and implement properly
     # @staticmethod    
@@ -70,12 +70,14 @@ class LanguageModelProcessor:
     #         yield " ".join(tokens[i:i + max_tokens])
     
     def chunk_text_by_tokens(self, text, chunk_size=1000, overlap=200):
-        tokens = self.tokenizer.encode(text)
+        tokens = self.tokenizer.encode(text, add_special_tokens=False)
         chunks = []
         i = 0
         while i < len(tokens):
             chunk_tokens = tokens[i:i+chunk_size]
-            chunk_text = self.tokenizer.decode(chunk_tokens)
+            if len(chunk_tokens) > 510:  # Align with BERT limit for safety
+                chunk_tokens = chunk_tokens[:510]
+            chunk_text = self.tokenizer.decode(chunk_tokens, skip_special_tokens=True)
             chunks.append(chunk_text)
             i += chunk_size - overlap
         return chunks
@@ -83,11 +85,11 @@ class LanguageModelProcessor:
     def process(self, text):
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
         
-        if self.pdf_text:
-            system_message = f"Reference Document:\n{self.pdf_text}"
-            # Add the system message in a way that it will be included in the prompt
-            self.memory.save_context({'input': text}, {'output': system_message})
-            print(f"System Message Added: {system_message[:30]}...")  # Log the first 50 characters of the system message
+        # if self.pdf_text:
+        #     system_message = f"Reference Document:\n{self.pdf_text}"
+        #     # Add the system message in a way that it will be included in the prompt
+        #     self.memory.save_context({'input': text}, {'output': system_message})
+        #     print(f"System Message Added: {system_message[:30]}...")  # Log the first 50 characters of the system message
 
         # Retrieve similar documents based on the user query
         if self.context_manager:
@@ -97,7 +99,14 @@ class LanguageModelProcessor:
             # context = " ".join([doc['document'] for doc in similar_docs])  # Extract the document text from each result
             if similar_docs:
                 # Flatten the document field to get the text
-                context = " ".join([doc['document'][0] for doc in similar_docs if doc['document']])  # Safely access the first item
+                # context = " ".join([doc['document'][0] for doc in similar_docs if doc['document']])  # Safely access the first item
+                # Build context with source attribution for multi-doc clarity
+                context_parts = []
+                for doc in similar_docs:
+                    filename = doc['metadata'].get('filename', 'Unknown')
+                    chunk_text = doc['document']
+                    context_parts.append(f"From {filename}:\n{chunk_text}")
+                context = "\n\n".join(context_parts)
             else:
                 context = ""
         else:
@@ -107,16 +116,16 @@ class LanguageModelProcessor:
         if context:
             # max_chunk_tokens = CHUNK_SIZE_LLM  # Use global/configurable value
             # chunks = list(self.chunk_text(context, max_chunk_tokens))
-            max_total_tokens = CHUNK_SIZE_LLM  # e.g., 6000
-            chunk_size = CHUNK_SIZE_LLM // 3   # e.g., 2000
-            overlap = CHUNK_OVERLAP_LLM        # e.g., 0 or 200
+            max_total_tokens = CHUNK_SIZE_LLM  
+            chunk_size = CHUNK_SIZE_LLM // 3   
+            overlap = CHUNK_OVERLAP_LLM        
 
             chunks = self.chunk_text_by_tokens(context, chunk_size=chunk_size, overlap=overlap)
              # Accumulate chunks until token limit is reached
             selected_chunks = []
             total_tokens = 0
             for chunk in chunks:
-                chunk_tokens = len(self.tokenizer.encode(chunk))
+                chunk_tokens = len(self.tokenizer.encode(chunk, add_special_tokens=False))
                 if total_tokens + chunk_tokens > max_total_tokens:
                     break
                 selected_chunks.append(chunk)
@@ -300,8 +309,8 @@ class ConversationManager:
         self.llm = LanguageModelProcessor(context_manager=self.context_manager)
         self.transcription_active = False
 
-    def set_pdf_text(self, text):
-        self.llm.set_pdf_text(text)
+    # def set_pdf_text(self, text):
+    #     self.llm.set_pdf_text(text)
     
     async def main(self):
         def handle_full_sentence(full_sentence):
