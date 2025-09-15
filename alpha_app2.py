@@ -13,6 +13,11 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
 from transformers import AutoTokenizer
+# NEW
+import logging
+
+# NEW: Setup logging
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 from dotenv import load_dotenv
 
@@ -103,14 +108,17 @@ def send_welcome_email(email):
     msg.body = 'Thank you for signing in to QuickAgent. We are excited to have you with us!'
     mail.send(msg)
 
-@app.route('/start_transcription', methods=['POST'])
+@app.route('/start_transcription', methods=['POST']) # NEW async
 def start_transcription():
     global transcription_thread
 
     if transcription_thread is None or not transcription_thread.is_alive():
         transcription_thread = threading.Thread(target=conversation_manager.run_transcription)
         transcription_thread.start()
+        #logging.info("Transcription thread started")
         return jsonify({"status": "Transcription started"})
+    #logging.warning("Transcription already running")
+    #return jsonify({"status": "Transcription already running"})
     else:
         return jsonify({"status": "Transcription already running"})
 
@@ -124,21 +132,63 @@ def stop_transcription():
         return jsonify({"status": "Transcription stopped"})
     else:
         return jsonify({"status": "No transcription running"})
+    
+    
+# NEW: Stream TTS audio
+# @app.route('/stream_tts', methods=['GET'])
+# async def stream_tts():
+#     logging.info("Starting TTS streaming")
+#     async def generate():
+#         text = conversation_manager.llm_response
+#         if not text:
+#             logging.warning("No LLM response for TTS")
+#             yield b""
+#             return
+#         try:
+#             async for chunk in conversation_manager.tts.speak(text):
+#                 yield chunk.cpu().numpy().tobytes()
+#         except Exception as e:
+#             logging.error(f"TTS streaming failed: {e}")
+#             yield b""
+#     return Response(generate(), mimetype='audio/wav')
 
+# # NEW: Handle continuous mic input
+# @app.route('/audio_input', methods=['POST'])
+# async def audio_input():
+#     try:
+#         audio_data = request.get_data()
+#         if conversation_manager.transcription_active:
+#             # NEW: Buffer audio and send to Deepgram
+#             loop = asyncio.get_event_loop()
+#             loop.run_in_executor(None, lambda: conversation_manager.tts.microphone.send(audio_data))
+#             logging.info("Audio data received and sent to Deepgram")
+#         return jsonify({"status": "Audio received"})
+#     except Exception as e:
+#         logging.error(f"Audio input error: {e}")
+#         return jsonify({"status": "Audio input failed"}), 500
+
+
+# @app.route('/get_data')
+# def get_data():
+#     transcript = conversation_manager.transcription_response
+#     llm_response = conversation_manager.llm_response  # Ensure this is accessible
+#     return jsonify({
+#         "transcript": transcript,
+#         "llm_response": llm_response
+#     })
+    
 @app.route('/get_data')
 def get_data():
+    if not conversation_manager.transcription_active:
+        return jsonify({"status": "Transcription inactive", "transcript": "", "llm_response": ""})
     transcript = conversation_manager.transcription_response
-    llm_response = conversation_manager.llm_response  # Ensure this is accessible
+    llm_response = conversation_manager.llm_response
     return jsonify({
+        "status": "Active",
         "transcript": transcript,
         "llm_response": llm_response
     })
-
-# CHUNK_SIZE_INGEST = 1000
-# CHUNK_OVERLAP_INGEST = 200
-# CHUNK_SIZE_LLM = 2000
-# CHUNK_OVERLAP_LLM = 0
-
+    
 @app.route('/get_chunking_config', methods=['GET'])
 def get_chunking_config():
     return jsonify({
@@ -169,29 +219,77 @@ def upload_pdf():
     if 'pdf' not in request.files:
         return jsonify({"status": "No file part in the request"}), 400
     
-    file = request.files['pdf']
-    if file.filename == '':
+    #file = request.files['pdf']
+    # FIX: Use getlist to handle multiple files
+    files = request.files.getlist('pdf')
+    #if file.filename == '':
+    if not files or all(file.filename == '' for file in files):
         return jsonify({"status": "No selected file"}), 400
     
-    if file and file.filename.endswith('.pdf'):
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filepath)
+    results = []
+    for file in files:
+        if file and file.filename.endswith('.pdf'):
+            try:
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+                file.save(filepath)
+                
+                # Extract text from PDF
+                text = extract_text_from_pdf(filepath)
+                # Chunk text
+                chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
+                # Store each chunk in ChromaDB
+                for idx, chunk in enumerate(chunks):
+                    doc_id = f"{file.filename}_chunk_{idx}"
+                    context_manager.add_document(doc_id, chunk, file.filename)
+                results.append({
+                    "filename": file.filename,
+                    "status": "success",
+                    "chunks": len(chunks)
+                })
+                logging.info(f"Uploaded and processed {file.filename} with {len(chunks)} chunks")
+            except Exception as e:
+                results.append({
+                    "filename": file.filename,
+                    "status": "error",
+                    "error": str(e)
+                })
+                logging.error(f"Error processing {file.filename}: {str(e)}")
+        else:
+            results.append({
+                "filename": file.filename,
+                "status": "error",
+                "error": "Invalid file format. Only PDFs are allowed"
+            })
+    
+    # Summarize results
+    status_summary = f"Processed {len(results)} files: " + ", ".join(
+        f"{res['filename']} ({res['status']})" for res in results
+    )
+    return jsonify({
+        "status": status_summary,
+        "details": results
+    }), 200 if any(res['status'] == 'success' for res in results) else 400
+    
+    # OLD Single file handling
+    # if file and file.filename.endswith('.pdf'):
+    #     filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    #     file.save(filepath)
 
-        #Extract text from PDF and set it in the ConversationManager
-        text = extract_text_from_pdf(filepath)
-        # Chunk text before embedding, use utility function chunk_text
-        chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
-        for idx, chunk in enumerate(chunks):
-            doc_id = f"{file.filename}_chunk_{idx}"
-            context_manager.add_document(doc_id, chunk, file.filename)
-        # conversation_manager.set_pdf_text(text)
+    #     #Extract text from PDF and set it in the ConversationManager
+    #     text = extract_text_from_pdf(filepath)
+    #     # Chunk text before embedding, use utility function chunk_text
+    #     chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
+    #     for idx, chunk in enumerate(chunks):
+    #         doc_id = f"{file.filename}_chunk_{idx}"
+    #         context_manager.add_document(doc_id, chunk, file.filename)
+    #     # conversation_manager.set_pdf_text(text)
     
-        # doc_id = file.filename
-        # context_manager.add_document(doc_id, text, file.filename)
+    #     # doc_id = file.filename
+    #     # context_manager.add_document(doc_id, text, file.filename)
         
-        return jsonify({"status": "File uploaded, text extracted and chunked"}), 200
+    #     return jsonify({"status": "File uploaded, text extracted and chunked"}), 200
     
-    return jsonify({"status": "Invalid file format. only PDF's are allowed"}), 400
+    # return jsonify({"status": "Invalid file format. only PDF's are allowed"}), 400
 
 @app.route('/get_context', methods=['POST'])
 def get_context():

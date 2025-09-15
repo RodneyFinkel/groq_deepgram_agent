@@ -5,6 +5,7 @@ import subprocess
 import requests
 import time
 import os
+import pyaudio
 
 from alpha_DocumentContextManager import DocumentContextManager
 from chunk_config import CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
@@ -22,6 +23,13 @@ from langchain.prompts import (
 )
 from langchain.chains import LLMChain
 
+# import torch # New
+# import torchaudio # New
+# # from chatterbox.tts import ChatterboxTTS # New
+# import re
+import logging # New
+import re
+
 from deepgram import (
     DeepgramClient,
     DeepgramClientOptions,
@@ -30,16 +38,24 @@ from deepgram import (
     Microphone,
 )
 
+# NEW: Setup logging to catcg errors and debug info
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 load_dotenv()
 
 class LanguageModelProcessor:
     def __init__(self, context_manager=None):
-        self.llm = ChatGroq(temperature=0, model_name="qwen/qwen3-32b", groq_api_key=os.getenv("GROQ_API_KEY"))
+        self.llm = ChatGroq(temperature=0, 
+                            model_name="deepseek-r1-distill-llama-70b", 
+                            groq_api_key=os.getenv("GROQ_API_KEY"), 
+                            streaming=True,
+                            max_retries=3,
+                            ) # ---  qwen/qwen3-32b
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
-        self.max_history_exchanges = 4
+        self.max_history_exchanges = 10
 
         # Load the system prompt from a file
         with open('system_prompt2.txt', 'r') as file:
@@ -56,18 +72,9 @@ class LanguageModelProcessor:
             prompt=self.prompt,
             memory=self.memory
         )
-        # self.pdf_text = "" # Initialize the PDF text
         
-    # def set_pdf_text(self, text):
-    #     self.pdf_text = text
-    #     print(f"PDF Text Set: {self.pdf_text[:100]}...")  # Log the first 200 characters of the PDF text
-    
-    # Review and implement properly
-    # @staticmethod    
-    # def chunk_text(text, max_tokens):
-    #     tokens = text.split()
-    #     for i in range(0, len(tokens), max_tokens):
-    #         yield " ".join(tokens[i:i + max_tokens])
+        self.list_docs_pattern = re.compile(r"\b(list documents|what documents|available documents|show documents|documents in context)\b", re.IGNORECASE)
+       
     
     def chunk_text_by_tokens(self, text, chunk_size=1000, overlap=200):
         tokens = self.tokenizer.encode(text, add_special_tokens=False)
@@ -85,64 +92,84 @@ class LanguageModelProcessor:
     def process(self, text):
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
         
-        # if self.pdf_text:
-        #     system_message = f"Reference Document:\n{self.pdf_text}"
-        #     # Add the system message in a way that it will be included in the prompt
-        #     self.memory.save_context({'input': text}, {'output': system_message})
-        #     print(f"System Message Added: {system_message[:30]}...")  # Log the first 50 characters of the system message
+        # FIX: Define max_total_tokens at the start to avoid UnboundLocalError
+        max_total_tokens = CHUNK_SIZE_LLM  # Default value from chunk_config
+        context = ""  # Initialize context to avoid unbound variable issues
 
+        if self.context_manager and self.list_docs_pattern.search(text):
+            # Fetch all documents from ChromaDB
+            all_data = self.context_manager.collection.get(include=['documents', 'metadatas'])
+            doc_list = []
+            for doc_id, metadata in zip(all_data['ids'], all_data['metadatas']):
+                filename = metadata.get('filename', 'Unknown')
+                summary = metadata.get('summary', 'No summary available')
+                doc_list.append(f"Document ID: {doc_id}, Filename: {filename}, Summary: {summary}")
+            context = "Available documents:\n" + "\n".join(doc_list) if doc_list else "No documents available."
+            # FIX: Truncate context to fit within max_total_tokens
+            context_tokens = len(self.tokenizer.encode(context))
+            if context_tokens > max_total_tokens:
+                tokens = self.tokenizer.encode(context, add_special_tokens=False)[:max_total_tokens]
+                context = self.tokenizer.decode(tokens, skip_special_tokens=True)
+                logging.warning(f"Document list context truncated to {max_total_tokens} tokens")
+            # add as system message
+            self.memory.save_context({'input': text}, {'output': context})
+            logging.info(f"Document list context added with {len(doc_list)} documents. context: {context[:100]}...")
+                
+        else:    
+        
+        # eexisting retrieval logic for normal queries
         # Retrieve similar documents based on the user query
-        if self.context_manager:
-            similar_docs = self.context_manager.get_similar_documents(text)
-            print(f"Similar Docs: {similar_docs}")
-            # context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
-            # context = " ".join([doc['document'] for doc in similar_docs])  # Extract the document text from each result
-            if similar_docs:
-                # Flatten the document field to get the text
-                # context = " ".join([doc['document'][0] for doc in similar_docs if doc['document']])  # Safely access the first item
-                # Build context with source attribution for multi-doc clarity
-                context_parts = []
-                for doc in similar_docs:
-                    filename = doc['metadata'].get('filename', 'Unknown')
-                    chunk_text = doc['document']
-                    context_parts.append(f"From {filename}:\n{chunk_text}")
-                context = "\n\n".join(context_parts)
+            if self.context_manager:
+                similar_docs = self.context_manager.get_similar_documents(text)
+                print(f"Similar Docs: {similar_docs}")
+                # context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
+                # context = " ".join([doc['document'] for doc in similar_docs])  # Extract the document text from each result
+                if similar_docs:
+                    # Flatten the document field to get the text
+                    # context = " ".join([doc['document'][0] for doc in similar_docs if doc['document']])  # Safely access the first item
+                    # Build context with source attribution for multi-doc clarity
+                    context_parts = []
+                    for doc in similar_docs:
+                        filename = doc['metadata'].get('filename', 'Unknown')
+                        chunk_text = doc['document']
+                        context_parts.append(f"From {filename}:\n{chunk_text}")
+                    context = "\n\n".join(context_parts)
+                else:
+                    context = ""
             else:
                 context = ""
-        else:
-            context = ""
-        
-        # Review and implement properly
-        if context:
-            # max_chunk_tokens = CHUNK_SIZE_LLM  # Use global/configurable value
-            # chunks = list(self.chunk_text(context, max_chunk_tokens))
-            max_total_tokens = CHUNK_SIZE_LLM  
-            chunk_size = CHUNK_SIZE_LLM // 3   
-            overlap = CHUNK_OVERLAP_LLM        
+            
+            # Review and implement properly
+            if context:
+                # max_chunk_tokens = CHUNK_SIZE_LLM  # Use global/configurable value
+                # chunks = list(self.chunk_text(context, max_chunk_tokens))
+                max_total_tokens = CHUNK_SIZE_LLM  
+                chunk_size = CHUNK_SIZE_LLM // 3   
+                overlap = CHUNK_OVERLAP_LLM        
 
-            chunks = self.chunk_text_by_tokens(context, chunk_size=chunk_size, overlap=overlap)
-             # Accumulate chunks until token limit is reached
-            selected_chunks = []
-            total_tokens = 0
-            for chunk in chunks:
-                chunk_tokens = len(self.tokenizer.encode(chunk, add_special_tokens=False))
-                if total_tokens + chunk_tokens > max_total_tokens:
-                    break
-                selected_chunks.append(chunk)
-                total_tokens += chunk_tokens
-            
-            context_for_llm = " ".join(selected_chunks)
-            
-            self.last_chunking_info = {
-            "num_chunks": len(selected_chunks),
-            "chunk_size": chunk_size,
-            "chunks": selected_chunks[:5]  # Show first 5 chunks for preview
-        }
-            print(f"Chunking Info: {self.last_chunking_info}") # Log Chunking Information
-            context = context_for_llm
-            system_message = f"Reference Document Context:\n{context}"
-            self.memory.save_context({'input': text}, {'ouput': system_message})
-            print(f"System Message: {system_message[:50]}...Added")
+                chunks = self.chunk_text_by_tokens(context, chunk_size=chunk_size, overlap=overlap)
+                # Accumulate chunks until token limit is reached
+                selected_chunks = []
+                total_tokens = 0
+                for chunk in chunks:
+                    chunk_tokens = len(self.tokenizer.encode(chunk, add_special_tokens=False))
+                    if total_tokens + chunk_tokens > max_total_tokens:
+                        break
+                    selected_chunks.append(chunk)
+                    total_tokens += chunk_tokens
+                
+                context_for_llm = " ".join(selected_chunks)
+                
+                self.last_chunking_info = {
+                "num_chunks": len(selected_chunks),
+                "chunk_size": chunk_size,
+                "chunks": selected_chunks[:5]  # Show first 5 chunks for preview
+            }
+                print(f"Chunking Info: {self.last_chunking_info}") # Log Chunking Information
+                context = context_for_llm
+                system_message = f"Reference Document Context:\n{context}"
+                self.memory.save_context({'input': text}, {'ouput': system_message})
+                print(f"System Message: {system_message[:50]}...Added")
             
         # --- Limit conversation history ---
         # Each exchange is user+AI, so keep last N*2 messages
@@ -173,6 +200,83 @@ class LanguageModelProcessor:
         # print(f"LLM ({elapsed_time}ms): {response['text']}")
         return response['text']
 
+# Modified TextToSpeech class to use Chatterbox instead of Deepgram
+# class TextToSpeech:
+#     def __init__(self):
+#         # NEW initialise Chatterbox TTS model
+#         try:
+#             self.tts_model = ChatterboxTTS.from_pretrained(device='cuda' if torch.cuda.is_available() else 'CPU')
+#             self.sr = self.tts_model.sr # Dample rate (~22050 Hz)
+#             logging.info(f"Chatterbox TTS initialized on {self.tts_model.device} with sample rate {self.sr}")
+#         except Exception as e:
+#             logging.error(f"Failed to initialize Chatterbox TTS: {e}")
+#             raise RuntimeError('Chatterbox initialization failed. Ensure Chatterbox-tts is installed.')
+#         # NEW: Track speaking rate and cancellation
+#         self.is_speaking = False
+#         self.cancel_flag = asyncio.Event()
+    
+#     def is_installed(self, lib_name: str) ->bool:
+#         # UNCHANGED: check for ffplay
+#         return shutil.which(lib_name) is not None
+    
+#     async def speak(self, text):
+#         # NEW robust error checking for TTS
+#         if not self.is_installed("ffplay"):
+#             logging.error("ffplay not found required for audio playback.")
+#             raise ValueError('ffplay not found, necessary to stream audio.')
+        
+#         self.is_speaking = True
+#         self.cancel_flag.clear()
+#         logging.info(f"Starting TTS for text: {text[:25]}")
+        
+#         # NEW: COnfigure ffplay with chatterbox sample rate
+#         player_command =    ["ffplay", "-autoexit", "-nodisp", "-i", "pipe:0", "-ar", str(self.sr)]  
+#         try:
+#             player_process = subprocess.Popen(
+#                 player_command, 
+#                 stdin=subprocess.PIPE,
+#                 stdout=subprocess.DEVNULL,
+#                 stderr=subprocess.DEVNULL,
+#             )   
+#         except Exception as e:
+#             logging.erro(f"failed to start ffplay: {e}")
+#             self.is_speaking = False
+#             raise RuntimeError('ffplay subprocess failed.')
+        
+#         try:
+#             # NEW: Check for streaming support, fallback to non-streaming
+#             if hasattr(self.tts_model, 'generate_stream'):
+#                 async for chunk in self.tts_model.generate_stream(text, batch_size=1):
+#                     if self.cancel_flag.is_set():
+#                         logging.info("TTS interrupted by keyword detection")
+#                         break
+#                     chunk_bytes = chunk.cpu().numpy().tobytes()
+#                     player_process.stdin.write(chunk_bytes)
+#                     player_process.stdin.flush()
+#                     await asyncio.sleep(0.01)  # Yield for interruption check
+#             else:
+#                 # Fallback to non-streaming
+#                 logging.warning("Streaming not supported, using non-streaming fallback")
+#                 wav = self.tts_model.generate(text)
+#                 chunk_bytes = wav.cpu().numpy().tobytes()
+#                 player_process.stdin.write(chunk_bytes)
+#                 player_process.stdin.flush()
+#         except Exception as e:
+#             logging.error(f"TTS generation failed: {e}")
+#         finally:
+#             if player_process.stdin:
+#                 player_process.stdin.close()
+#             player_process.wait()
+#             self.is_speaking = False
+#             logging.info("TTS completed")
+        
+#     def stop_speaking(self):
+#         self.cancel_flag.set()
+#         logging.info('TTS stop requested')
+        
+            
+
+# OLD TTS Class using DEEPGRAM
 class TextToSpeech:
     
     DG_API_KEY = os.getenv("DEEPGRAM_API_KEY")
@@ -239,7 +343,100 @@ class TranscriptCollector:
     
 transcript_collector = TranscriptCollector()
 
+# CHANGED TO ACCOMODATE INTERUPTION KEYWORDS
+# async def get_transcript(callback, tts: TextToSpeech):
+#     # NEW: Events for transcition and interruption
+#     transcription_complete = asyncio.Event()
+#     interruption_detected = asyncio.Event()
+#     # NEW: regex for keywords optmized for speed
+#     interruption_keywords = r"\b(hold on|listen|let me interrupt|but|wait)\b"
+    
+#     try:
+#         config = DeepgramClientOptions(options={"keepalive": "true"})
+#         deepgram = DeepgramClient("", config)
+#         dg_connection = deepgram.listen.asynclive.v("1")
+#         logging.info('Deepgram listening started')
+        
+#         async def on_message(self, result, **kwargs):
+#             sentence = result.channel.alternatives[0].transcript
+#             if not sentence:
+#                 return
+            
+#             # NEW: Check for interruption keywords
+#             if re.search(interruption_keywords, sentence.lower(), re.IGNORECASE):
+#                 logging.info(f"Interruption detected: {sentence}")
+#                 tts.stop_speaking()
+#                 interruption_detected.set()
+#                 transcript_collector.add_part(sentence)
+#                 full_sentence = transcript_collector.get_full_transcript().strip()
+#                 if full_sentence:
+#                     logging.info(f"Human (interruption): {full_sentence}")
+#                     callback(full_sentence)
+#                     transcript_collector.reset()
+#                     transcription_complete.set()
+#                 return
+            
+#             if not result.speech_final:
+#                 transcript_collector.add_part(sentence)
+#             else:
+#                 transcript_collector.add_part(sentence)
+#                 full_sentence = transcript_collector.get_full_transcript()
+#                 if full_sentence.strip():
+#                     full_sentence = full_sentence.strip()
+#                     logging.info(f"Human: {full_sentence}")
+#                     callback(full_sentence)
+#                     transcript_collector.reset()
+#                     transcription_complete.set()
 
+#         dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
+
+#         # MODIFIED: Lower endpointing for faster interruption
+#         options = LiveOptions(
+#             model="nova-3",
+#             punctuate=True,
+#             language="en-US",
+#             encoding="linear16",
+#             channels=1,
+#             sample_rate=16000,
+#             endpointing=50,  # Reduced for faster detection
+#             smart_format=True,
+#         )
+
+#         await dg_connection.start(options)
+#         microphone = Microphone(dg_connection.send)
+#         microphone.start()
+#         logging.info("Microphone started")
+
+#         # NEW: Wait for transcription or interruption
+#         await asyncio.gather(
+#             transcription_complete.wait(),
+#             interruption_detected.wait(),
+#             return_exceptions=True
+#         )
+
+#         microphone.finish()
+#         await dg_connection.finish()
+#         logging.info("Transcription finished")
+
+#     except Exception as e:
+#         logging.error(f"Could not open socket: {e}")
+            
+            
+def check_microphone():
+    p = pyaudio.PyAudio()
+    try:
+        p.get_default_input_device_info()
+        logging.info("Microphone detected")
+        return True
+    except Exception as e:
+        logging.error(f"No microphone available: {e}")
+        return False
+    finally:
+        p.terminate()          
+            
+            
+            
+            
 async def get_transcript(callback):
     transcription_complete = asyncio.Event()  # Event to signal transcription completion
 
@@ -308,33 +505,65 @@ class ConversationManager:
         self.context_manager = DocumentContextManager() 
         self.llm = LanguageModelProcessor(context_manager=self.context_manager)
         self.transcription_active = False
-
-    # def set_pdf_text(self, text):
-    #     self.llm.set_pdf_text(text)
-    
+        # NEW: Initialize TTS
+        # self.tts = TextToSpeech()
+        self.loop = asyncio.get_event_loop()  # Use main event loop
+        
     async def main(self):
         def handle_full_sentence(full_sentence):
             self.transcription_response = full_sentence
-
+            # self.transcription_active = False # NEW: Stop after one sentnce for demo purposes
+            
         while True:
             await get_transcript(handle_full_sentence)
             if "goodbye" in self.transcription_response.lower():
                 break
-            
-            self.llm_response = self.llm.process(self.transcription_response)                            
-            tts = TextToSpeech()
-            tts.speak(self.llm_response)
+            if self.transcription_response.strip():  # Only process non-empty
+                logging.info(f"Processing transcription: {self.transcription_response}")
+                self.llm_response = self.llm.process(self.transcription_response)                            
+                tts = TextToSpeech()
+                tts.speak(self.llm_response)
             # Reset transcription_response for the next loop iteration, maybe change this so the transcription persists
             # self.transcription_response = ''
-       
+
+        # while True:
+        #     if not self.transcription_active:
+        #         self.transcription_active = True
+        #         # New: Modified pass TTS for interuption handling
+        #         await get_transcript(handle_full_sentence, self.tts)
+        
+        #    # await get_transcript(handle_full_sentence)
+        #         if "goodbye" in self.transcription_response.lower():
+        #             break
+        #         if self.transcription_response:
+        #             self.llm_response = self.llm.process(self.transcription_response)
+        #             # NEW: Ssync TTS
+        #             await self.tts.speak(self.llm_response)
+                    
+            # OLD ASYNC CALL
+            # self.llm_response = self.llm.process(self.transcription_response)                            
+            # tts = TextToSpeech()
+            # tts.speak(self.llm_response)
+            
     def run_transcription(self):
-        self.transcription_active = True
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(self.main())
+        if not self.loop.is_running():
+            self.transcription_active = True
+            self.loop.run_until_complete(self.main())
+        else:
+            # If loop is running, schedule as task
+            asyncio.ensure_future(self.main(), loop=self.loop)
+    
+       
+    # def run_transcription(self):
+    #     self.transcription_active = True
+    #     loop = asyncio.new_event_loop()
+    #     asyncio.set_event_loop(loop)
+    #     loop.run_until_complete(self.main())
 
     def stop_transcription(self):
         self.transcription_active = False
+        # NEW
+        # self.tts.stop_speaking()
 
 if __name__ == "__main__":
     manager = ConversationManager()

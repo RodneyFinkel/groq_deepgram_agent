@@ -84,17 +84,6 @@ class DocumentContextManager:
             include=["documents", "metadatas", "embeddings"]
         )
         
-        # Ensure results contain valid data
-        # similar_docs = []
-        # for doc_id, document, metadata in zip(results["ids"], results["documents"], results["metadatas"]):
-        #     if doc_id and document:  # Check if both doc_id and document exist
-        #         similar_docs.append({
-        #             "doc_id": doc_id[0],  # Extract the first item
-        #             "document": document[0],  # Flatten the document list
-        #             "metadata": metadata  # Metadata is typically a single dictionary
-        #         })
-        # return similar_docs
-        
         # Extract inner lists (Chroma returns nested lists for multi-query, but we have one query)
         ids = results["ids"][0] if results["ids"] else []
         documents = results["documents"][0] if results["documents"] else []

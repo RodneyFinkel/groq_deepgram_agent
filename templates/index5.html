@@ -596,7 +596,7 @@ async function fetchChunkingInfo() {
             <form id="uploadForm" enctype="multipart/form-data">
                 <button onclick="stopTranscription()">Stop Transcription</button>
                 <p id="status">Status: Idle</p>
-                <input type="file" name="pdf">
+                <input type="file" name="pdf" accept=".pdf" multiple class="mt-2">
                 <button type="button" onclick="uploadPDF()">RAG Upload</button>
             </form>
             <h2>Document Context Management</h2>
