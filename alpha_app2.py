@@ -5,7 +5,7 @@ import os
 import requests
 import yfinance as yf
 import PyPDF2 
-from alpha_quickagent import ConversationManager
+from alpha_quickagent import ConversationManager, check_microphone
 from alpha_DocumentContextManager import DocumentContextManager
 from chunk_config import CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
 import threading
@@ -127,7 +127,11 @@ def start_transcription():
     global transcription_thread
 
     if transcription_thread is None or not transcription_thread.is_alive():
+        # Check if microphone is available before starting
+        if not check_microphone():
+            return jsonify({"status": "No microphone available"}), 500
         transcription_thread = threading.Thread(target=conversation_manager.run_transcription)
+        transcription_thread.daemon = True # Ensure thread terminates when Flask app exits
         transcription_thread.start()
         logging.info("Transcription thread started")
         return jsonify({"status": "Transcription started"})
@@ -143,6 +147,7 @@ def stop_transcription():
     if transcription_thread is not None and transcription_thread.is_alive():
         conversation_manager.stop_transcription()
         transcription_thread = None
+        logging.info('Transcription thread stopped')
         return jsonify({"status": "Transcription stopped"})
     else:
         return jsonify({"status": "No transcription running"})

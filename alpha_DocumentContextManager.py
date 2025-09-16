@@ -16,7 +16,7 @@ class DocumentContextManager:
         # Using chromadb
         self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
         print("Chroma Initialized")
-        self.collection = self.client.get_or_create_collection("documents")
+        self.collection = self.client.get_or_create_collection("documents", metadata={"hnsw:space": "cosine"}) # Ensure cosine similarity is used
         
         # Load pre-trained model and tokenizer
         # self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -25,7 +25,7 @@ class DocumentContextManager:
         self.model = SentenceTransformer('all-MiniLM-L6-v2') # New model
         print("SentenceTransformer Initialized")
         
-        
+    # OLD: using BERT 
     # def _embed_text(self, text):
     #     # Pre-tokenize without special tokens to control length precisely
     #     tokens = self.tokenizer.encode(text, add_special_tokens=False)
@@ -47,7 +47,7 @@ class DocumentContextManager:
     #     print(f"Generated Embedding Shape: {embeddings.shape}")
     #     return embeddings.cpu().numpy().flatten()
     
-    # NEW; using sentence transformer
+    # NEW: using Sentence Transformer
     def _embed_text(self, text):
         embedding = self.model.encode(text, show_progress_bar=True)
         if isinstance(embedding, np.ndarray):
@@ -87,34 +87,44 @@ class DocumentContextManager:
         )
 
     
-    #  Using chromadb
-    
-    def get_similar_documents(self, query, top_k=10):
+    #  Using Chromadb
+    def get_similar_documents(self, query, top_k=10, similarity_threshold=0.6, keyword_filter=None):
         if len(query.strip()) < 3: # skip very short queries
             print('~Query to short, skipping retrieval.')
             return []
         
         # query_embedding = self._embed_text(query).tolist()
         query_embedding = self._embed_text(query)
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=top_k,
-            include=["documents", "metadatas", "embeddings"]
-        )
+        query_params = {
+            'query_embeddings': [query_embedding],
+            'n_results': top_k,
+            'include': ["documents", "metadatas", "embeddings"]
+        }
+        
+        results = self.collection.query(**query_params)
         
         # Extract inner lists (Chroma returns nested lists for multi-query, but we have one query)
         ids = results["ids"][0] if results["ids"] else []
         documents = results["documents"][0] if results["documents"] else []
         metadatas = results["metadatas"][0] if results["metadatas"] else []
+        distances = results["distances"][0] if results["distances"] else [] # NEW
         
+        # NEW: Similarity threshold filtering
         similar_docs = []
         for i in range(len(ids)):
-            similar_docs.append({
-                "doc_id": ids[i],
-                "document": documents[i],
-                "metadata": metadatas[i]
-            })
+            similarity = 1 - distances[i] if distances else 0 
+            if similarity >= similarity_threshold:
+                similar_docs.append({
+                    "doc_id": ids[i],
+                    "document": documents[i],
+                    "metadata": metadatas[i],
+                    "similarity": similarity # Include similirity score if available
+                })
+            else:
+                logging.debug(f"Document {ids[i]} filtered out(similarity: {similarity} < {similarity_threshold})")
+                
         
+        logging.info(f"Retrieved {len(similar_docs)} documents with similarity >= {similarity_threshold}")
         return similar_docs
 
 

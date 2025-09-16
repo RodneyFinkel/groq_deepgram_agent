@@ -122,7 +122,7 @@ class LanguageModelProcessor:
         # Existing retrieval logic for normal queries
         # Retrieve similar documents based on the user query
             if self.context_manager:
-                similar_docs = self.context_manager.get_similar_documents(text)
+                similar_docs = self.context_manager.get_similar_documents(text, top_k=10, similarity_threshold=0.6)
                 print(f"Similar Docs: {similar_docs}")
                 # context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
                 # context = " ".join([doc['document'] for doc in similar_docs])  # Extract the document text from each result
@@ -308,16 +308,9 @@ class TextToSpeech:
             stderr=subprocess.DEVNULL,
         )
 
-        # start_time = time.time()  # Record the time before sending the request
-        # first_byte_time = None  # Initialize a variable to store the time when the first byte is received
-
         with requests.post(DEEPGRAM_URL, stream=True, headers=headers, json=payload) as r:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
-                    # if first_byte_time is None:  # Check if this is the first chunk received
-                    #     first_byte_time = time.time()  # Record the time when the first byte is received
-                    #     ttfb = int((first_byte_time - start_time)*1000)  # Calculate the time to first byte
-                    #     print(f"TTS Time to First Byte (TTFB): {ttfb}ms\n")
                     player_process.stdin.write(chunk)
                     player_process.stdin.flush()
 
@@ -435,8 +428,7 @@ def check_microphone():
         p.terminate()          
             
             
-            
-            
+                        
 async def get_transcript(callback):
     transcription_complete = asyncio.Event()  # Event to signal transcription completion
 
@@ -444,7 +436,6 @@ async def get_transcript(callback):
         # example of setting up a client config. logging values: WARNING, VERBOSE, DEBUG, SPAM
         config = DeepgramClientOptions(options={"keepalive": "true"})
         deepgram: DeepgramClient = DeepgramClient("", config)
-
         dg_connection = deepgram.listen.asynclive.v("1")
         print ("Listening...")
 
@@ -464,10 +455,16 @@ async def get_transcript(callback):
                     callback(full_sentence)  # Call the callback with the full_sentence
                     transcript_collector.reset()
                     transcription_complete.set()  # Signal to stop transcription and exit
-                    
-
+        
+        # NEW            
+        async def on_error(self, error, **kwargs):
+            logging.error('Deepgram error: {error}')
+            transcription_complete.set()
+        
+        
         dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
-
+        dg_connection.on(LiveTranscriptionEvents.Error, on_error) #NEW
+        
         options = LiveOptions(
             model="nova-3",
             punctuate=True,
@@ -475,12 +472,11 @@ async def get_transcript(callback):
             encoding="linear16",
             channels=1,
             sample_rate=16000,
-            endpointing=300,
+            endpointing=150,
             smart_format=True,
         )
 
         await dg_connection.start(options)
-
         # Open a microphone stream on the default input device
         microphone = Microphone(dg_connection.send)
         microphone.start()
@@ -544,14 +540,28 @@ class ConversationManager:
             # self.llm_response = self.llm.process(self.transcription_response)                            
             # tts = TextToSpeech()
             # tts.speak(self.llm_response)
-            
+    
+    
     def run_transcription(self):
-        if not self.loop.is_running():
-            self.transcription_active = True
-            self.loop.run_until_complete(self.main())
-        else:
-            # If loop is running, schedule as task
-            asyncio.ensure_future(self.main(), loop=self.loop)
+        self.transcription_active = True
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(self.main())
+        finally:
+            loop.close()
+            self.transcription_active = False
+            logging.info("Transcription event loop closed")
+            
+    
+            
+    # def run_transcription(self):
+    #     if not self.loop.is_running():
+    #         self.transcription_active = True
+    #         self.loop.run_until_complete(self.main())
+    #     else:
+    #         # If loop is running, schedule as task
+    #         asyncio.ensure_future(self.main(), loop=self.loop)
     
        
     # def run_transcription(self):

@@ -259,9 +259,9 @@
         }
 
         #document_list {
-            color: white;
+            color: rgb(135, 140, 226);
             max-height: 100px; /* Fits ~5 documents */
-            overflow-y: auto; /* Scroll if more than 5 documents */
+            overflow-y: clip; /* Scroll if more than 5 documents */
             margin: 10px 0;
             padding: 5px;
         }
@@ -479,7 +479,7 @@
 
             function changeBackground() {
                 console.log('Changing background'); // DEBUG
-                const backgrounds = ['static/backgrounds/alpha_aleph_x.jpg'];
+                const backgrounds = ['static/backgrounds/alpha_aleph_x.jpg', 'static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg'];
                 let currentIndex = 0;
                 const mainContent = document.getElementById('main-content');
                 mainContent.style.backgroundImage = `url(${backgrounds[currentIndex]})`;
@@ -555,7 +555,7 @@
             fetchChunkingConfig();
             fetchChunkingInfo();
             setInterval(updateClock, 1000);
-            setInterval(fetchStocks, 3100000);
+            setInterval(fetchStocks, 100000);
             setInterval(fetchQuote, 600000);
             setInterval(changeBackground, 100000);
             setTimeout(() => {
@@ -600,11 +600,9 @@
             <h2>Hello, {{ session['username'] }}</h2>
         </div>
         <div class="quote-container" id="quote-container"></div>
+        
 
-        <div id="documentList" class="mt-2">
-            <h4 class="text-md font-semibold">Available Documents</h4>
-            <ul id="documents" class="list-disc pl-5"></ul>
-        </div>
+        
         
     
     <div class="sidebar">
