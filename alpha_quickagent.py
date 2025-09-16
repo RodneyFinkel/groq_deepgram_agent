@@ -9,7 +9,8 @@ import pyaudio
 
 from alpha_DocumentContextManager import DocumentContextManager
 from chunk_config import CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
-from transformers import AutoTokenizer
+#from transformers import AutoTokenizer
+from sentence_transformers import SentenceTransformer
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
@@ -52,7 +53,8 @@ class LanguageModelProcessor:
                             max_retries=3,
                             ) # qwen/qwen3-32b
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
-        self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        self.tokenizer = SentenceTransformer('all-MiniLM-L6-v2')._first_module().tokenizer
+        #self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
         self.max_history_exchanges = 10
@@ -82,8 +84,8 @@ class LanguageModelProcessor:
         i = 0
         while i < len(tokens):
             chunk_tokens = tokens[i:i+chunk_size]
-            if len(chunk_tokens) > 510:  # Align with BERT limit for safety
-                chunk_tokens = chunk_tokens[:510]
+            # if len(chunk_tokens) > 510:  # Align with BERT limit for safety
+            #     chunk_tokens = chunk_tokens[:510]
             chunk_text = self.tokenizer.decode(chunk_tokens, skip_special_tokens=True)
             chunks.append(chunk_text)
             i += chunk_size - overlap

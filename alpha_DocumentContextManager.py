@@ -1,12 +1,15 @@
 # Using chromadb
 from chromadb import Client
 from chromadb.config import Settings
+from sentence_transformers import SentenceTransformer # For better embeddings
 import torch
 from transformers import BertTokenizer, BertModel
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import time
+import logging
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DocumentContextManager:
     def __init__(self):
@@ -16,31 +19,45 @@ class DocumentContextManager:
         self.collection = self.client.get_or_create_collection("documents")
         
         # Load pre-trained model and tokenizer
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        self.model = BertModel.from_pretrained('bert-base-uncased')
-        print("Bert initialized")
+        # self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+        # self.model = BertModel.from_pretrained('bert-base-uncased')
+        # print("Bert initialized")
+        self.model = SentenceTransformer('all-MiniLM-L6-v2') # New model
+        print("SentenceTransformer Initialized")
         
         
+    # def _embed_text(self, text):
+    #     # Pre-tokenize without special tokens to control length precisely
+    #     tokens = self.tokenizer.encode(text, add_special_tokens=False)
+    #     if len(tokens) > 510:  # Leave room for [CLS] + [SEP] (~2 tokens)
+    #         print(f"Warning: Input text truncated from {len(tokens)} to 510 tokens for BERT limit.")
+    #         tokens = tokens[:510]
+        
+    #     # Re-encode with special tokens and padding
+    #     inputs = self.tokenizer.decode(tokens, skip_special_tokens=True)  # Back to text, clean (NEW)
+    #     inputs = self.tokenizer(inputs, return_tensors='pt', truncation=True, padding=True, max_length=512)
+        
+    #     print(f"Input token count (with special): {inputs['input_ids'].shape[1]}")  # Debug: Should be <=512
+    #     with torch.no_grad():
+    #         outputs = self.model(**inputs)
+    #     # Mean pooling to get a single vector for the document
+    #     embeddings = outputs.last_hidden_state.mean(dim=1)
+    #     if embeddings is None or embeddings.shape[0] == 0:
+    #         raise ValueError("Emebeddings generation failed for text.")
+    #     print(f"Generated Embedding Shape: {embeddings.shape}")
+    #     return embeddings.cpu().numpy().flatten()
+    
+    # NEW; using sentence transformer
     def _embed_text(self, text):
-        # Pre-tokenize without special tokens to control length precisely
-        tokens = self.tokenizer.encode(text, add_special_tokens=False)
-        if len(tokens) > 510:  # Leave room for [CLS] + [SEP] (~2 tokens)
-            print(f"Warning: Input text truncated from {len(tokens)} to 510 tokens for BERT limit.")
-            tokens = tokens[:510]
-        
-        # Re-encode with special tokens and padding
-        inputs = self.tokenizer.decode(tokens, skip_special_tokens=True)  # Back to text, clean (NEW)
-        inputs = self.tokenizer(inputs, return_tensors='pt', truncation=True, padding=True, max_length=512)
-        
-        print(f"Input token count (with special): {inputs['input_ids'].shape[1]}")  # Debug: Should be <=512
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-        # Mean pooling to get a single vector for the document
-        embeddings = outputs.last_hidden_state.mean(dim=1)
-        if embeddings is None or embeddings.shape[0] == 0:
-            raise ValueError("Emebeddings generation failed for text.")
-        print(f"Generated Embedding Shape: {embeddings.shape}")
-        return embeddings.cpu().numpy().flatten()
+        embedding = self.model.encode(text, show_progress_bar=True)
+        if isinstance(embedding, np.ndarray):
+            #embedding = embedding.tolist()
+            embedding = embedding
+        elif not isinstance(embedding, list):
+            logging.error(f"Unexpected embedding type: {type(embedding)}")
+            raise ValueError(f"Unexpected embedding type: {type(embedding)}")
+        logging.info(f"Generated Embedding Shape: {len(embedding)}")
+        return embedding
     
     # Using chromadb
     def add_document(self, doc_id, text, filename):
@@ -77,7 +94,8 @@ class DocumentContextManager:
             print('~Query to short, skipping retrieval.')
             return []
         
-        query_embedding = self._embed_text(query).tolist()
+        # query_embedding = self._embed_text(query).tolist()
+        query_embedding = self._embed_text(query)
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,

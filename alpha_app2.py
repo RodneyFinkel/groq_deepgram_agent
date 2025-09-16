@@ -12,7 +12,7 @@ import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
-from transformers import AutoTokenizer
+# from transformers import AutoTokenizer
 # NEW
 import logging
 
@@ -53,26 +53,40 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Pre-load tokenizer globally
-tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+# tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
 
 # Utility Function for chunking text
-def chunk_text(text, chunk_size=384, overlap=CHUNK_OVERLAP_INGEST):
-    #words = text.split()
-    global tokenizer
-    tokens = tokenizer.encode(text, add_special_tokens=False)
+# def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST):
+#     #words = text.split()
+#     global tokenizer
+#     tokens = tokenizer.encode(text, add_special_tokens=False)
+#     chunks = []
+#     i = 0
+#     while i < len(tokens):
+#         chunk_tokens = tokens[i:i+chunk_size]
+#         # Enforce chunk size limit
+#         if len(chunk_tokens) > 510: # Align with BERT limit 
+#             chunk_tokens = chunk_tokens[:510]
+#         chunk_text_decoded = tokenizer.decode(chunk_tokens, skip_special_tokens=True)
+#         chunks.append(chunk_text_decoded)
+#         # chunk = words[i:i+chunk_size]
+#         # chunks.append(" ".join(chunk))
+#         i += chunk_size - overlap
+#     return chunks
+
+# NEW: Utility Function for chunking text with sentence transformer tokenizer
+def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST):
+    
     chunks = []
     i = 0
-    while i < len(tokens):
-        chunk_tokens = tokens[i:i+chunk_size]
-        # Enforce chunk size limit
-        if len(chunk_tokens) > 510: # Align with BERT limit 
-            chunk_tokens = chunk_tokens[:510]
-        chunk_text_decoded = tokenizer.decode(chunk_tokens, skip_special_tokens=True)
-        chunks.append(chunk_text_decoded)
-        # chunk = words[i:i+chunk_size]
-        # chunks.append(" ".join(chunk))
+    while i < len(text):
+        chunk = text[i:i + chunk_size]
+        chunks.append(chunk)
         i += chunk_size - overlap
+    logging.info(f"Created {len(chunks)} chunks with size {chunk_size} and overlap {overlap}")
     return chunks
+
+
 
 @app.route('/')
 def index():
