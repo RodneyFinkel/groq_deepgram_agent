@@ -88,7 +88,7 @@ class DocumentContextManager:
 
     
     #  Using Chromadb
-    def get_similar_documents(self, query, top_k=10, similarity_threshold=0.6, keyword_filter=None):
+    def get_similar_documents(self, query, top_k=10, similarity_threshold=0.7, keyword_filter=None):
         if len(query.strip()) < 3: # skip very short queries
             print('~Query to short, skipping retrieval.')
             return []
