@@ -260,6 +260,10 @@
 
         #document_list {
             color: white;
+            max-height: 100px; /* Fits ~5 documents */
+            overflow-y: auto; /* Scroll if more than 5 documents */
+            margin: 10px 0;
+            padding: 5px;
         }
 
         .quote-container {
@@ -282,256 +286,283 @@
         
     </style>
     <script>
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            const transcript = document.getElementById('transcript');
-            const llm_response = document.getElementById('llm_response');
-            sidebar.classList.toggle('open');
-            transcript.classList.toggle('collapsed');
-            llm_response.classList.toggle('collapsed');
-        }
+        console.log('Main script loaded at', new Date().toISOString()); // DEBUG: Confirm script runs
 
-        async function startTranscription() {
-            const response = await fetch('/start_transcription', {
-                method: 'POST',
-            });
-            const data = await response.json();
-            document.getElementById('status').innerText = data.status;
-            fetchUpdates();
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded at', new Date().toISOString()); // DEBUG: Confirm DOM is ready
 
-        async function stopTranscription() {
-            const response = await fetch('/stop_transcription', {
-                method: 'POST',
-            });
-            const data = await response.json();
-            document.getElementById('status').innerText = data.status;
-        }
-
-        async function fetchUpdates() {
-            const response = await fetch('/get_data');
-            const data = await response.json();
-            document.getElementById('transcript').innerText = data.transcript || "No transcript available.";
-            document.getElementById('llm_response').innerText = data.llm_response || "No response yet.";
-
-            // Continue polling every 2 seconds for updates
-            setTimeout(fetchUpdates, 2000);
-        }
-
-        async function uploadPDF() {
-            const formData = new FormData();
-            const fileField = document.querySelector('input[type="file"]');
-
-            formData.append('pdf', fileField.files[0]);
-
-            const response = await fetch('/upload_pdf', {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-            alert(data.status);
-        }
-
-        async function fetchDocuments() {
-            const response = await fetch('/get_documents');
-            if (!response.ok) {
-                console.error('Network response was not ok:', response.statusText);
-                return;
-            }
-            const data = await response.json();
-            console.log('Documents fetched:', data);  // Add this line to see the fetched data
-            const documentList = document.getElementById('document_list');
-            documentList.innerHTML = '';
-            data.forEach(doc => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `ID: ${doc.doc_id}, Filename: ${doc.filename}, Upload Time: ${new Date(doc.upload_time * 1000).toLocaleString()}, Summary: ${doc.summary}`;
-                documentList.appendChild(listItem);
-            });
-        }
-
-        async function fetchWeather() {
-            const response = await fetch('/weather?city=Haifa');
-            const data = await response.json();
-            if (data.error) {
-                document.getElementById('weather').innerText = data.error;
-            } else {
-                document.getElementById('weather').innerHTML = `
-                    <img class="weather-icon" src="http://openweathermap.org/img/wn/${data.icon}.png" alt="Weather Icon">
-                    <span>${data.city}: ${data.temperature}°C, ${data.description}</span>
-                `;
-            }
-        }
-
-        /*
-        async function fetchStocks() {
-            try {
-                const response = await fetch('/stocks');
-                const data = await response.json();
-                if (response.ok) {
-                    const stockTicker = document.getElementById('stock-ticker');
-                    stockTicker.innerHTML = ''; // Clear previous stock data
-                    data.forEach(stock => {
-                        const stockElement = document.createElement('span');
-                        stockElement.textContent = `${stock.symbol}: $${stock.price}`;
-                        stockTicker.appendChild(stockElement);
-                    });
-                } else {
-                    console.error('Failed to fetch stock data:', data.error);
-                }
-            } catch (error) {
-                console.error('Error fetching stock data:', error);
-            }
-        }
-        // Update stock quotes every hour
-        setInterval(fetchStocks, 100000);
-        */
-
-        async function fetchStocks() {
-            try {
-                const response = await fetch('/stocks');
-                const data = await response.json();
-                if (response.ok) {
-                    const stockTicker = document.getElementById('stock-ticker');
-                    stockTicker.innerHTML = ''; // Clear previous stock data
-                    
-                    data.forEach((stock, index) => {
-                        let displaySymbol = stock.symbol;
-        
-                        // If it's an index, append "Index"
-                        if (stock.symbol.startsWith('^')) {
-                            displaySymbol += " (Index)";
+            // List Documents
+            const listDocumentsButton = document.getElementById('listDocuments');
+            if (listDocumentsButton) {
+                console.log('List Documents button found'); // DEBUG
+                listDocumentsButton.addEventListener('click', async () => {
+                    console.log('List Documents clicked'); // DEBUG
+                    try {
+                        console.log('Fetching from /get_documents'); // DEBUG
+                        const response = await fetch('/get_documents', { method: 'GET' });
+                        console.log('Response status:', response.status); // DEBUG
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
                         }
-        
-                        // Create stock item elements and append them to the ticker band
-                        const stockElement = document.createElement('div');
-                        stockElement.classList.add('stock-item');
-                        stockElement.textContent = `${displaySymbol}: $${stock.price}`;
-                        stockTicker.appendChild(stockElement);
-                    });
-                } else {
-                    console.error('Failed to fetch stock data:', data.error);
-                }
-            } catch (error) {
-                console.error('Error fetching stock data:', error);
+                        const documents = await response.json();
+                        console.log('Documents received:', documents); // DEBUG
+                        const docList = document.getElementById('documents');
+                        if (docList) {
+                            docList.innerHTML = ''; // Clear previous content
+                            if (documents.length === 0) {
+                                docList.innerHTML = '<li>No documents available.</li>';
+                            } else {
+                                documents.forEach(doc => {
+                                    const li = document.createElement('li');
+                                    li.textContent = `${doc.filename} (ID: ${doc.doc_id}, Uploaded: ${new Date(doc.upload_time * 1000).toLocaleString()}, Summary: ${doc.summary})`;
+                                    docList.appendChild(li);
+                                });
+                            }
+                        } else {
+                            console.error('Documents list element not found');
+                            alert('Error: Document list element not found');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching documents:', error);
+                        alert('Failed to fetch documents: ' + error.message);
+                        const docList = document.getElementById('documents');
+                        if (docList) {
+                            docList.innerHTML = '<li>Error fetching documents: ' + error.message + '</li>';
+                        }
+                    }
+                });
+            } else {
+                console.error('List Documents button not found');
+                alert('Error: List Documents button not found');
             }
-        }
-        
-        // Update stock quotes (in milliseconds)
-        setInterval(fetchStocks, 3100000);
-        
-        // Call the function initially to load the stock data immediately
-        fetchStocks();
-        
-        
 
+            // Other event listeners
+            function toggleSidebar() {
+                console.log('Toggling sidebar'); // DEBUG
+                const sidebar = document.querySelector('.sidebar');
+                const transcript = document.getElementById('transcript');
+                const llm_response = document.getElementById('llm_response');
+                sidebar.classList.toggle('open');
+                transcript.classList.toggle('collapsed');
+                llm_response.classList.toggle('collapsed');
+            }
 
-        function updateClock() {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const timeString = `${hours}:${minutes}`;
-            document.getElementById('clock').textContent = timeString;
-        }
-        // Update the clock every minute
-        setInterval(updateClock, 1000);
-
-        
-        async function fetchQuote() {
-            try {
-                const response = await fetch('/quote');
+            async function startTranscription() {
+                console.log('Start Transcription clicked'); // DEBUG
+                const response = await fetch('/start_transcription', { method: 'POST' });
                 const data = await response.json();
-                if (response.ok) {
-                    const quoteContainer = document.getElementById('quote-container');
-                    quoteContainer.innerHTML = `
-                        <div class="quote">"${data.quote}"</div>
-                        <div class="author">- ${data.author}</div>
-                    `;
-                } else {
-                    console.error('Failed to fetch quote:', data.error);
-                }
-            } catch (error) {
-                console.error('Error fetching quote:', error);
+                document.getElementById('status').innerText = data.status;
+                fetchUpdates();
             }
-        }
-        // Update quotes every hour
-        setInterval(fetchQuote, 600000);
 
-        // Update the background
-        const backgrounds = [
-            
-            'static/backgrounds/alpha_aleph_x.jpg',
-            // Add more background image paths here
-        ];
+            async function stopTranscription() {
+                console.log('Stop Transcription clicked'); // DEBUG
+                const response = await fetch('/stop_transcription', { method: 'POST' });
+                const data = await response.json();
+                document.getElementById('status').innerText = data.status;
+            }
 
-        let currentIndex = 0;
+            async function fetchUpdates() {
+                console.log('Fetching updates'); // DEBUG
+                const response = await fetch('/get_data');
+                const data = await response.json();
+                document.getElementById('transcript').innerText = data.transcript || "No transcript available.";
+                document.getElementById('llm_response').innerText = data.llm_response || "No response yet.";
+                setTimeout(fetchUpdates, 2000);
+            }
 
-        function changeBackground() {
-            const mainContent = document.getElementById('main-content');
-            console.log(mainContent); // Debugging line
-            mainContent.style.backgroundImage = `url(${backgrounds[currentIndex]})`;
-            currentIndex = (currentIndex + 1) % backgrounds.length;
-        }
+            async function uploadPDF() {
+                console.log('Upload PDF clicked'); // DEBUG
+                const formData = new FormData();
+                const fileField = document.querySelector('input[type="file"]');
+                formData.append('pdf', fileField.files[0]);
+                const response = await fetch('/upload_pdf', { method: 'POST', body: formData });
+                const data = await response.json();
+                alert(data.status);
+            }
 
-        // Change background every 20 seconds
-        setInterval(changeBackground, 100000);
+            async function fetchDocuments() {
+                console.log('Fetch Documents clicked'); // DEBUG
+                const response = await fetch('/get_documents');
+                if (!response.ok) {
+                    console.error('Network response was not ok:', response.statusText);
+                    alert('Failed to fetch documents: ' + response.statusText);
+                    return;
+                }
+                const data = await response.json();
+                console.log('Documents fetched:', data); // DEBUG
+                const documentList = document.getElementById('documents');
+                if (documentList) {
+                    documentList.innerHTML = '';
+                    if (data.length === 0) {
+                        documentList.innerHTML = '<li>No documents available.</li>';
+                    } else {
+                        data.forEach(doc => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `${doc.filename} (ID: ${doc.doc_id}, Uploaded: ${new Date(doc.upload_time * 1000).toLocaleString()}, Summary: ${doc.summary})`;
+                            documentList.appendChild(listItem);
+                        });
+                    }
+                } else {
+                    console.error('Documents list element not found');
+                    alert('Error: Documents list element not found');
+                }
+            }
 
-        async function fetchChunkingConfig() {
-    const response = await fetch('/get_chunking_config');
-    const config = await response.json();
-    document.getElementById('chunk_size_ingest').value = config.chunk_size_ingest;
-    document.getElementById('chunk_overlap_ingest').value = config.chunk_overlap_ingest;
-    document.getElementById('chunk_size_llm').value = config.chunk_size_llm;
-    document.getElementById('chunk_overlap_llm').value = config.chunk_overlap_llm;
-}
+            async function fetchWeather() {
+                console.log('Fetching weather'); // DEBUG
+                const response = await fetch('/weather?city=Haifa');
+                const data = await response.json();
+                if (data.error) {
+                    document.getElementById('weather').innerText = data.error;
+                } else {
+                    document.getElementById('weather').innerHTML = `
+                        <img class="weather-icon" src="http://openweathermap.org/img/wn/${data.icon}.png" alt="Weather Icon">
+                        <span>${data.city}: ${data.temperature}°C, ${data.description}</span>
+                    `;
+                }
+            }
 
-async function updateChunkingConfig() {
-    const config = {
-        chunk_size_ingest: document.getElementById('chunk_size_ingest').value,
-        chunk_overlap_ingest: document.getElementById('chunk_overlap_ingest').value,
-        chunk_size_llm: document.getElementById('chunk_size_llm').value,
-        chunk_overlap_llm: document.getElementById('chunk_overlap_llm').value
-    };
-    await fetch('/set_chunking_config', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(config)
-    });
-    alert('Chunking configuration updated!');
-    fetchChunkingInfo();
-}
+            async function fetchStocks() {
+                console.log('Fetching stocks'); // DEBUG
+                try {
+                    const response = await fetch('/stocks');
+                    const data = await response.json();
+                    if (response.ok) {
+                        const stockTicker = document.getElementById('stock-ticker');
+                        stockTicker.innerHTML = '';
+                        data.forEach((stock, index) => {
+                            let displaySymbol = stock.symbol;
+                            if (stock.symbol.startsWith('^')) {
+                                displaySymbol += " (Index)";
+                            }
+                            const stockElement = document.createElement('div');
+                            stockElement.classList.add('stock-item');
+                            stockElement.textContent = `${displaySymbol}: $${stock.price}`;
+                            stockTicker.appendChild(stockElement);
+                        });
+                    } else {
+                        console.error('Failed to fetch stock data:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error fetching stock data:', error);
+                }
+            }
 
-async function fetchChunkingInfo() {
-    const response = await fetch('/get_chunking_info');
-    const info = await response.json();
-    let html = `<b>Num Chunks:</b> ${info.num_chunks || 0}<br><b>Chunk Size:</b> ${info.chunk_size || 0}<br>`;
-    if (info.chunks) {
-        html += `<b>Chunks Preview:</b><br>`;
-        info.chunks.forEach((chunk, idx) => {
-            html += `<div style="color:white; margin-bottom:5px;"><b>Chunk ${idx+1}:</b> ${chunk.substring(0,100)}...</div>`;
+            function updateClock() {
+                console.log('Updating clock'); // DEBUG
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timeString = `${hours}:${minutes}`;
+                document.getElementById('clock').textContent = timeString;
+            }
+
+            async function fetchQuote() {
+                console.log('Fetching quote'); // DEBUG
+                try {
+                    const response = await fetch('/quote');
+                    const data = await response.json();
+                    if (response.ok) {
+                        const quoteContainer = document.getElementById('quote-container');
+                        quoteContainer.innerHTML = `
+                            <div class="quote">"${data.quote}"</div>
+                            <div class="author">- ${data.author}</div>
+                        `;
+                    } else {
+                        console.error('Failed to fetch quote:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error fetching quote:', error);
+                }
+            }
+
+            function changeBackground() {
+                console.log('Changing background'); // DEBUG
+                const backgrounds = ['static/backgrounds/alpha_aleph_x.jpg'];
+                let currentIndex = 0;
+                const mainContent = document.getElementById('main-content');
+                mainContent.style.backgroundImage = `url(${backgrounds[currentIndex]})`;
+                currentIndex = (currentIndex + 1) % backgrounds.length;
+            }
+
+            async function fetchChunkingConfig() {
+                console.log('Fetching chunking config'); // DEBUG
+                const response = await fetch('/get_chunking_config');
+                const config = await response.json();
+                document.getElementById('chunk_size_ingest').value = config.chunk_size_ingest;
+                document.getElementById('chunk_overlap_ingest').value = config.chunk_overlap_ingest;
+                document.getElementById('chunk_size_llm').value = config.chunk_size_llm;
+                document.getElementById('chunk_overlap_llm').value = config.chunk_overlap_llm;
+            }
+
+            async function updateChunkingConfig() {
+                console.log('Updating chunking config'); // DEBUG
+                const config = {
+                    chunk_size_ingest: document.getElementById('chunk_size_ingest').value,
+                    chunk_overlap_ingest: document.getElementById('chunk_overlap_ingest').value,
+                    chunk_size_llm: document.getElementById('chunk_size_llm').value,
+                    chunk_overlap_llm: document.getElementById('chunk_overlap_llm').value
+                };
+                await fetch('/set_chunking_config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(config)
+                });
+                alert('Chunking configuration updated!');
+                fetchChunkingInfo();
+            }
+
+            async function fetchChunkingInfo() {
+                console.log('Fetching chunking info'); // DEBUG
+                const response = await fetch('/get_chunking_info');
+                const info = await response.json();
+                let html = `<b>Num Chunks:</b> ${info.num_chunks || 0}<br><b>Chunk Size:</b> ${info.chunk_size || 0}<br>`;
+                if (info.chunks) {
+                    html += `<b>Chunks Preview:</b><br>`;
+                    info.chunks.forEach((chunk, idx) => {
+                        html += `<div style="color:white; margin-bottom:5px;"><b>Chunk ${idx+1}:</b> ${chunk.substring(0,100)}...</div>`;
+                    });
+                }
+                document.getElementById('chunking_info').innerHTML = html;
+            }
+
+            // Attach event listeners
+            const toggleButton = document.querySelector('.toggle-btn');
+            if (toggleButton) toggleButton.addEventListener('click', toggleSidebar);
+
+            const startMic = document.querySelector('.mic-button');
+            if (startMic) startMic.addEventListener('click', startTranscription);
+
+            const stopButton = document.querySelector('button[onclick="stopTranscription()"]');
+            if (stopButton) stopButton.addEventListener('click', stopTranscription);
+
+            const uploadButton = document.querySelector('button[onclick="uploadPDF()"]');
+            if (uploadButton) uploadButton.addEventListener('click', uploadPDF);
+
+            const fetchDocsButton = document.querySelector('button[onclick="fetchDocuments()"]');
+            if (fetchDocsButton) fetchDocsButton.addEventListener('click', fetchDocuments);
+
+            const chunkingButton = document.querySelector('button[onclick="updateChunkingConfig()"]');
+            if (chunkingButton) chunkingButton.addEventListener('click', updateChunkingConfig);
+
+            // Initialize on load
+            fetchWeather();
+            fetchStocks();
+            updateClock();
+            fetchQuote();
+            changeBackground();
+            fetchChunkingConfig();
+            fetchChunkingInfo();
+            setInterval(updateClock, 1000);
+            setInterval(fetchStocks, 3100000);
+            setInterval(fetchQuote, 600000);
+            setInterval(changeBackground, 100000);
+            setTimeout(() => {
+                document.querySelector('.sidebar').classList.add('hide-scrollbar');
+            }, 10000);
         });
-    }
-    document.getElementById('chunking_info').innerHTML = html;
-}
-
-    // Call these on page load
-    window.onload = function() {
-        fetchWeather();
-        fetchStocks();
-        updateClock();
-        fetchQuote();
-        changeBackground();
-        fetchChunkingConfig();
-        fetchChunkingInfo();
-
-        // Hide sidebar scrollbar after 10 seconds
-        setTimeout(function() {
-            document.querySelector('.sidebar').classList.add('hide-scrollbar');
-        }, 10000);
-};
-
-       
-    </script>
+    </script
 
 </head>
 <body>
@@ -569,6 +600,11 @@ async function fetchChunkingInfo() {
             <h2>Hello, {{ session['username'] }}</h2>
         </div>
         <div class="quote-container" id="quote-container"></div>
+
+        <div id="documentList" class="mt-2">
+            <h4 class="text-md font-semibold">Available Documents</h4>
+            <ul id="documents" class="list-disc pl-5"></ul>
+        </div>
         
     
     <div class="sidebar">
@@ -600,7 +636,12 @@ async function fetchChunkingInfo() {
                 <button type="button" onclick="uploadPDF()">RAG Upload</button>
             </form>
             <h2>Document Context Management</h2>
-            <button onclick="fetchDocuments()">Fetch Documents</button>
+            <button onclick="fetchDocuments()">Empty Button</button>
+            <button id="listDocuments" class="btn btn-primary btn-sm mt-2">List Documents</button>
+                <div id="documentList" class="mt-2">
+                    <h4 class="text-md font-semibold">Available Documents</h4>
+                    <ul id="documents" class="list-disc pl-5"></ul>
+                </div>
             <ul id="document_list"></ul>   
 
             <span class="transcription-api-span">Realtime speech transcription API</span>

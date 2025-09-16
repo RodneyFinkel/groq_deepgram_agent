@@ -26,7 +26,7 @@ from langchain.chains import LLMChain
 # import torch # New
 # import torchaudio # New
 # # from chatterbox.tts import ChatterboxTTS # New
-# import re
+
 import logging # New
 import re
 
@@ -50,7 +50,7 @@ class LanguageModelProcessor:
                             groq_api_key=os.getenv("GROQ_API_KEY"), 
                             streaming=True,
                             max_retries=3,
-                            ) # ---  qwen/qwen3-32b
+                            ) # qwen/qwen3-32b
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
         self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -98,7 +98,7 @@ class LanguageModelProcessor:
 
         if self.context_manager and self.list_docs_pattern.search(text):
             # Fetch all documents from ChromaDB
-            all_data = self.context_manager.collection.get(include=['documents', 'metadatas'])
+            all_data = self.context_manager.collection.get(include=['documents', 'metadatas']) # This is where ChromaDB is accessed via context_manager
             doc_list = []
             for doc_id, metadata in zip(all_data['ids'], all_data['metadatas']):
                 filename = metadata.get('filename', 'Unknown')
@@ -117,7 +117,7 @@ class LanguageModelProcessor:
                 
         else:    
         
-        # eexisting retrieval logic for normal queries
+        # Existing retrieval logic for normal queries
         # Retrieve similar documents based on the user query
             if self.context_manager:
                 similar_docs = self.context_manager.get_similar_documents(text)
@@ -191,13 +191,11 @@ class LanguageModelProcessor:
             history_tokens = len(self.tokenizer.encode(history_text))
             total_prompt_tokens = history_tokens + context_tokens + input_tokens
         self.memory.chat_memory.messages = prompt_messages 
-        # start_time = time.time()
+        
         # ______Call the LLM_______
         response = self.conversation.invoke({"text": text})
-        # end_time = time.time()
         self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
-        # elapsed_time = int((end_time - start_time) * 1000)
-        # print(f"LLM ({elapsed_time}ms): {response['text']}")
+        logging.info(f"LLM Response: {response['text'][:100]}...")  # Log first 100 chars of response
         return response['text']
 
 # Modified TextToSpeech class to use Chatterbox instead of Deepgram

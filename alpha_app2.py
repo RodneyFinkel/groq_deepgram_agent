@@ -17,7 +17,7 @@ from transformers import AutoTokenizer
 import logging
 
 # NEW: Setup logging
-# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 from dotenv import load_dotenv
 
@@ -115,7 +115,7 @@ def start_transcription():
     if transcription_thread is None or not transcription_thread.is_alive():
         transcription_thread = threading.Thread(target=conversation_manager.run_transcription)
         transcription_thread.start()
-        #logging.info("Transcription thread started")
+        logging.info("Transcription thread started")
         return jsonify({"status": "Transcription started"})
     #logging.warning("Transcription already running")
     #return jsonify({"status": "Transcription already running"})
@@ -300,20 +300,26 @@ def get_context():
     results = context_manager.get_similar_documents(query)
     return jsonify({'results': results})
 
+
+# NOT WORKING
 @app.route('/get_documents', methods=['GET'])
 def get_documents():
-    # Get the list of documents and their metadata
-    documents = [
-        {
-            'doc_id': doc_id,
-            'filename': metadata['filename'],
-            'upload_time': metadata['upload_time'],
-            'summary': metadata['summary']
-        }
-        for doc_id, metadata in context_manager.metadata.items()
-    ]
-    
-    return jsonify(documents)
+    try:
+        # Fetch metadata directly from ChromaDB collection
+        all_data = context_manager.collection.get(include=['metadatas'])
+        documents = [
+            {
+                'doc_id': doc_id,
+                'filename': metadata.get('filename', 'Unknown'),
+                'upload_time': metadata.get('upload_time', 'N/A'),
+                'summary': metadata.get('summary', 'No summary available')
+            }
+            for doc_id, metadata in zip(all_data['ids'], all_data['metadatas'] or [])
+        ]
+        return jsonify(documents)
+    except Exception as e:
+        logging.error(f"Error fetching documents: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/query', methods=['POST'])
 def query():
@@ -403,29 +409,6 @@ def get_quote():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
-# Route for inspecting chromadb
-@app.route('/inspect_chroma', methods=['GET'])
-def inspect_chroma():
-    try:
-        # Retrieve all data from the ChromaDB collection
-        all_data = context_manager.collection.get(include=["documents", "metadatas", "embeddings", "ids"])
-        
-        # Add a separate field for truncated embeddings for readability
-        truncated_data = {
-            "ids": all_data["ids"],
-            "documents": all_data["documents"],
-            "metadatas": all_data["metadatas"],
-            "truncated_embeddings": [
-                embedding[:10] for embedding in all_data.get("embeddings", [])  # Show first 10 dimensions
-            ]
-        }
-        
-        # Return the truncated version for debugging purposes
-        return jsonify(truncated_data)
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
-
         
      
 if __name__ == '__main__':
