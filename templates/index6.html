@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAGAgent</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style3.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"> -->
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000000;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 2px solid #1b1c1d; /* Blue border */
+            color: #404449;
+            font-size: 24px;
+            padding: 5px 15px; /* Similar padding to Aleph button */
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .toggle-btn:hover {
+            background-color: #605255;
+            color: rgb(206, 193, 193);
+        }
+
+        .navbar{
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 40px; /* Adjust based on your navbar height */
+            
+            display: flex;
+            
+            z-index: 1000; /* Ensure it stays on top */
+        }
+
+        .navbar .left {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar .right {
+            display: flex;
+            align-items: center;
+        }
+
+        .weather-widget {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+        }
+
+        .weather-icon {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+
+/* main content container*/
+.main-content {
+    width: 100%;  /* Full width of the parent container */
+    margin-top: 60px; /* Same height as the navbar */
+    padding: 20px;
+    overflow: hidden;  /* Hide anything outside the container */
+    position: relative;
+}
+
+
+/* Container for the ticker */
+.stock-ticker-container {
+    width: 100%;  /* Full width of the parent container */
+    overflow: hidden;  /* Hide anything outside the container */
+    position: relative;
+}
+
+/* The actual ticker band that moves */
+.stock-ticker {
+    opacity: 0.7; /* Change this value between 0 (fully transparent) and 1 (fully opaque) */
+    display: flex; /* Align the tickers in a row */
+    white-space: nowrap; /* Prevent wrapping of tickers */
+    animation: scrollTicker 30s linear infinite; /* Animation for scrolling */
+}
+
+/* Each stock ticker item */
+.stock-item {
+    padding: 10px 20px;
+    font-size: 16px;
+    text-align: center;
+    flex-shrink: 0;  /* Prevent shrinking */
+}
+
+/* Animation for scrolling */
+@keyframes scrollTicker {
+    0% {
+        transform: translateX(100%); /* Start position, off-screen to the right */
+    }
+    100% {
+        transform: translateX(-100%); /* End position, off-screen to the left */
+    }
+}
+
+/* Optionally, style indices differently */
+.stock-item:contains('(Index)') {
+    font-weight: bold;
+    color: #007BFF; /* Change color for indices */
+}
+
+
+
+        .stock-ticker {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px; 
+        }
+
+        .stock-ticker span {
+            /*margin: 0 15px;*/
+            font-size: 18px;
+        }
+
+        .sidebar {
+            height: calc(100% - 40px);
+            width: 1000px;
+            position: fixed;
+            top: 65px; /* Below the navbar */
+            left: 0; /* Positioned to the right */
+            overflow-y: auto;
+            background-color: rgba(9, 7, 7, 0.8);
+            padding-top: 40px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            transform: translateX(-100%);
+            transition: transform 0.8s ease;
+            z-index: 999; /* Below the navbar */
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar .button-container {
+            margin: 20px;
+        }
+
+        .sidebar h2 {
+            color: white; 
+            text-shadow: 1px 1px 2px black; /* Subtle text shadow */
+            font-weight: bold; 
+        }
+        
+       
+        .sidebar .transcription-api-span,
+        .sidebar .llm-response-span {
+            color: white; 
+            
+        }
+
+        .chunking-config, .chunking-info {
+    margin-top: 20px;
+}
+
+/* Hide scrollbar for sidebar when .hide-scrollbar is added */
+.sidebar.hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE 10+ */
+}
+.sidebar.hide-scrollbar::-webkit-scrollbar { /* Chrome, Safari, Opera */
+    display: none;
+}
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            background-color: #303336;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #3c4147;
+        }
+
+        /* CHANGE: Add custom styles for retrievalInfo table */
+        #retrievalInfo {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+        }
+        #retrievalInfo th, #retrievalInfo td {
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        #retrievalInfo th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        #retrievalInfo td {
+            word-break: break-all;
+        }
+
+        .main-content {
+            margin-top: 60px; /* Ensure it's below the navbar */
+            padding: 20px;
+            background: url('static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg')  no-repeat center center fixed;
+            background-size: cover;
+            min-height: calc(100vh - 50px); /* Full height minus the navbar height */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .clock-container {
+            font-size: 8em; /* Large font size for the clock */
+            color: #fef76a; /* Black color for the clock */
+            background: none; /* Remove background */
+            padding: 20px;
+            border-radius: 0; /* Remove border radius */
+            margin-bottom: 20px; /* Space between clock and other content */
+        }
+
+        .text-container {
+            text-align: center; 
+        }
+
+        #transcript {
+            background-color: #141414;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            width: 600px;
+            height: 100px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: monospace;
+            white-space: pre-wrap; 
+            opacity: 0.6
+        }
+
+        #llm_response {
+            background-color: #141414;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            width: 600px;
+            height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            font-family: monospace;
+            white-space: pre-wrap; 
+            opacity: 0.6
+        }
+
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        #document_list {
+            color: rgb(135, 140, 226);
+            max-height: 100px; /* Fits ~5 documents */
+            overflow-y: clip; /* Scroll if more than 5 documents */
+            margin: 10px 0;
+            padding: 5px;
+        }
+
+        .quote-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .quote {
+            font-size: 1.5em;
+            color: #ffffff;
+            font-style: italic;
+            margin: 10px 0;
+        }
+
+        .author {
+            font-size: 1em;
+            color: black;
+            margin-top: 5px;
+        }
+        
+    </style>
+    <body>
+    {% if 'email' in session %}
+    <nav class="navbar">
+        <div class="left">
+            <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
+                <img class="navbar-logo" src="{{ url_for('static', filename='alep.png') }}" alt="Logo">
+            </a>
+            <button class="toggle-btn" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <button class="toggle-btn">
+                <a href='https://rodneyfinkel-stock-screener-app2-lgkrvg.streamlit.app/' target="blank">
+                    <i class="fas fa-chart-line"></i>
+                </a>
+            </button>
+        </div>
+        <div class="right">
+            <a href="{{ url_for('signout') }}" class="fas fa-sign-out-alt"></a>
+            <div class="weather-widget" id="weather"></div>
+        </div>
+    </nav>
+    {% endif %}
+
+   
+    <div class="main-content" id="main-content">
+        <div class="stock-ticker-container">
+            <div class="stock-ticker" id="stock-ticker">
+                <!-- Stock prices will be injected here -->
+            </div>   
+        </div>
+        <div class="clock-container" id="clock"></div>
+        <div class="text-container">
+            <h2>Hello, {{ session['username'] }}</h2>
+        </div>
+        <div class="quote-container" id="quote-container"></div>
+        
+
+        
+        
+    
+    <div class="sidebar">
+        <div class="button-container">
+            <div class="content">
+                <div class="button-container">
+                    <input type="checkbox" id="record" class="mic-checkbox" />
+                    <label for="record" class="mic-button" onclick="startTranscription()">
+                        <div class="mic">
+                            <div class="mic-button-loader"></div>
+                            <div class="mic-base"></div>
+                        </div>
+                        <div class="button-message">
+                            <span>&nbsp;</span>
+                            <span> START </span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+        <div>
+            <h2>STT-LLM-TTS Transcriber</h2>
+            <h2></h2>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <button onclick="stopTranscription()">Stop Transcription</button>
+                <p id="status">Status: Idle</p>
+                <input type="file" name="pdf" accept=".pdf" multiple class="mt-2">
+                <button type="button" onclick="uploadPDF()">RAG Upload</button>
+            </form>
+            <h2>Document Context Management</h2>
+            <label>Similarity Threshold (0-1):</label>
+            <input id="similarityThreshold" type="number" step="0.1" min="0" max="1" class="border p-1 w-full mt-1">
+            <button onclick="fetchDocuments()">Empty Button</button>
+            <button id="listDocuments" class="btn btn-primary btn-sm mt-2">List Documents</button>
+                <div id="documentList" class="mt-2">
+                    <h4 class="text-md font-semibold">Available Documents</h4>
+                    <ul id="documents" class="list-disc pl-5"></ul>
+                </div>
+            <ul id="document_list"></ul> 
+            <!-- CHANGE: Add section for displaying last retrieval info -->
+                <h3 class="font-semibold mt-4">Last Retrieval Info</h3>
+                <pre id="retrievalInfo" class="text-sm"></pre>  
+
+            <span class="transcription-api-span">Realtime speech transcription API</span>
+            <div id="transcript">No transcript available yet.</div>
+
+            <span class="llm-response-span">LLM Response</span>
+            <div id="llm_response">No response yet.</div>
+
+            
+             
+
+            <div class="chunking-config">
+                <h2 style="color:white;">Chunking Configuration</h2>
+                <label for="chunk_size_ingest" style="color:white;">Ingest Chunk Size:</label>
+                <input type="number" id="chunk_size_ingest" value="200" min="50" max="2000" style="width:80px;">
+                <label for="chunk_overlap_ingest" style="color:white;">Ingest Overlap:</label>
+                <input type="number" id="chunk_overlap_ingest" value="50" min="0" max="500" style="width:80px;">
+                <label for="chunk_size_llm" style="color:white;">LLM Chunk Size:</label>
+                <input type="number" id="chunk_size_llm" value="2000" min="100" max="5000" style="width:80px;">
+                <label for="chunk_overlap_llm" style="color:white;">LLM Overlap:</label>
+                <input type="number" id="chunk_overlap_llm" value="0" min="0" max="500" style="width:80px;">
+                <button onclick="updateChunkingConfig()">Update Chunking</button>
+                
+            </div>
+            <div class="chunking-info">
+                <h2 style="color:white;">Chunking Info</h2>
+                <div id="chunking_info"></div>
+        </div>
+            
+    </div>
+    
+
+</body>
+
+    <script>
+        console.log('Main script loaded at', new Date().toISOString()); // DEBUG: Confirm script runs
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded at', new Date().toISOString()); // DEBUG: Confirm DOM is ready
+
+            // List Documents
+            const listDocumentsButton = document.getElementById('listDocuments');
+            if (listDocumentsButton) {
+                console.log('List Documents button found'); // DEBUG
+                listDocumentsButton.addEventListener('click', async () => {
+                    console.log('List Documents clicked'); // DEBUG
+                    try {
+                        console.log('Fetching from /get_documents'); // DEBUG
+                        const response = await fetch('/get_documents', { method: 'GET' });
+                        console.log('Response status:', response.status); // DEBUG
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        const documents = await response.json();
+                        console.log('Documents received:', documents); // DEBUG
+                        const docList = document.getElementById('documents');
+                        if (docList) {
+                            docList.innerHTML = ''; // Clear previous content
+                            if (documents.length === 0) {
+                                docList.innerHTML = '<li>No documents available.</li>';
+                            } else {
+                                documents.forEach(doc => {
+                                    const li = document.createElement('li');
+                                    li.textContent = `${doc.filename} (ID: ${doc.doc_id}, Uploaded: ${new Date(doc.upload_time * 1000).toLocaleString()}, Summary: ${doc.summary})`;
+                                    docList.appendChild(li);
+                                });
+                            }
+                        } else {
+                            console.error('Documents list element not found');
+                            alert('Error: Document list element not found');
+                        }
+                    } catch (error) {
+                        console.error('Error fetching documents:', error);
+                        alert('Failed to fetch documents: ' + error.message);
+                        const docList = document.getElementById('documents');
+                        if (docList) {
+                            docList.innerHTML = '<li>Error fetching documents: ' + error.message + '</li>';
+                        }
+                    }
+                });
+            } else {
+                console.error('List Documents button not found');
+                alert('Error: List Documents button not found');
+            }
+
+            // Other event listeners
+            function toggleSidebar() {
+                console.log('Toggling sidebar'); // DEBUG
+                const sidebar = document.querySelector('.sidebar');
+                const transcript = document.getElementById('transcript');
+                const llm_response = document.getElementById('llm_response');
+                sidebar.classList.toggle('open');
+                transcript.classList.toggle('collapsed');
+                llm_response.classList.toggle('collapsed');
+            }
+
+            async function startTranscription() {
+                console.log('Start Transcription clicked'); // DEBUG
+                const response = await fetch('/start_transcription', { method: 'POST' });
+                const data = await response.json();
+                document.getElementById('status').innerText = data.status;
+                fetchUpdates();
+            }
+
+            async function stopTranscription() {
+                console.log('Stop Transcription clicked'); // DEBUG
+                const response = await fetch('/stop_transcription', { method: 'POST' });
+                const data = await response.json();
+                document.getElementById('status').innerText = data.status;
+            }
+
+            async function fetchUpdates() {
+                console.log('Fetching updates'); // DEBUG
+                const response = await fetch('/get_data');
+                const data = await response.json();
+                document.getElementById('transcript').innerText = data.transcript || "No transcript available.";
+                document.getElementById('llm_response').innerText = data.llm_response || "No response yet.";
+                setTimeout(fetchUpdates, 2000);
+            }
+
+            async function uploadPDF() {
+                console.log('Upload PDF clicked'); // DEBUG
+                const formData = new FormData();
+                const fileField = document.querySelector('input[type="file"]');
+                formData.append('pdf', fileField.files[0]);
+                const response = await fetch('/upload_pdf', { method: 'POST', body: formData });
+                const data = await response.json();
+                alert(data.status);
+            }
+
+            async function fetchDocuments() {
+                console.log('Fetch Documents clicked'); // DEBUG
+                const response = await fetch('/get_documents');
+                if (!response.ok) {
+                    console.error('Network response was not ok:', response.statusText);
+                    alert('Failed to fetch documents: ' + response.statusText);
+                    return;
+                }
+                const data = await response.json();
+                console.log('Documents fetched:', data); // DEBUG
+                const documentList = document.getElementById('documents');
+                if (documentList) {
+                    documentList.innerHTML = '';
+                    if (data.length === 0) {
+                        documentList.innerHTML = '<li>No documents available.</li>';
+                    } else {
+                        data.forEach(doc => {
+                            const listItem = document.createElement('li');
+                            listItem.textContent = `${doc.filename} (ID: ${doc.doc_id}, Uploaded: ${new Date(doc.upload_time * 1000).toLocaleString()}, Summary: ${doc.summary})`;
+                            documentList.appendChild(listItem);
+                        });
+                    }
+                } else {
+                    console.error('Documents list element not found');
+                    alert('Error: Documents list element not found');
+                }
+            }
+
+            async function fetchWeather() {
+                console.log('Fetching weather'); // DEBUG
+                const response = await fetch('/weather?city=Haifa');
+                const data = await response.json();
+                if (data.error) {
+                    document.getElementById('weather').innerText = data.error;
+                } else {
+                    document.getElementById('weather').innerHTML = `
+                        <img class="weather-icon" src="http://openweathermap.org/img/wn/${data.icon}.png" alt="Weather Icon">
+                        <span>${data.city}: ${data.temperature}°C, ${data.description}</span>
+                    `;
+                }
+            }
+
+            async function fetchStocks() {
+                console.log('Fetching stocks'); // DEBUG
+                try {
+                    const response = await fetch('/stocks');
+                    const data = await response.json();
+                    if (response.ok) {
+                        const stockTicker = document.getElementById('stock-ticker');
+                        stockTicker.innerHTML = '';
+                        data.forEach((stock, index) => {
+                            let displaySymbol = stock.symbol;
+                            if (stock.symbol.startsWith('^')) {
+                                displaySymbol += " (Index)";
+                            }
+                            const stockElement = document.createElement('div');
+                            stockElement.classList.add('stock-item');
+                            stockElement.textContent = `${displaySymbol}: $${stock.price}`;
+                            stockTicker.appendChild(stockElement);
+                        });
+                    } else {
+                        console.error('Failed to fetch stock data:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error fetching stock data:', error);
+                }
+            }
+
+            function updateClock() {
+                console.log('Updating clock'); // DEBUG
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timeString = `${hours}:${minutes}`;
+                document.getElementById('clock').textContent = timeString;
+            }
+
+            async function fetchQuote() {
+                console.log('Fetching quote'); // DEBUG
+                try {
+                    const response = await fetch('/quote');
+                    const data = await response.json();
+                    if (response.ok) {
+                        const quoteContainer = document.getElementById('quote-container');
+                        quoteContainer.innerHTML = `
+                            <div class="quote">"${data.quote}"</div>
+                            <div class="author">- ${data.author}</div>
+                        `;
+                    } else {
+                        console.error('Failed to fetch quote:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error fetching quote:', error);
+                }
+            }
+
+            function changeBackground() {
+                console.log('Changing background'); // DEBUG
+                const backgrounds = ['static/backgrounds/alpha_aleph_x.jpg', 'static/backgrounds/3d-abstract-background-with-modern-plexus-design.jpg'];
+                let currentIndex = 0;
+                const mainContent = document.getElementById('main-content');
+                mainContent.style.backgroundImage = `url(${backgrounds[currentIndex]})`;
+                currentIndex = (currentIndex + 1) % backgrounds.length;
+            }
+
+            async function fetchChunkingConfig() {
+                console.log('Fetching chunking config'); // DEBUG
+                const response = await fetch('/get_chunking_config');
+                const config = await response.json();
+                document.getElementById('chunk_size_ingest').value = config.chunk_size_ingest;
+                document.getElementById('chunk_overlap_ingest').value = config.chunk_overlap_ingest;
+                document.getElementById('chunk_size_llm').value = config.chunk_size_llm;
+                document.getElementById('chunk_overlap_llm').value = config.chunk_overlap_llm;
+                document.getElementById('similarityThreshold').value = data.similarity_threshold;
+            }
+
+            async function updateChunkingConfig() {
+                console.log('Updating chunking config'); // DEBUG
+                const config = {
+                    chunk_size_ingest: document.getElementById('chunk_size_ingest').value,
+                    chunk_overlap_ingest: document.getElementById('chunk_overlap_ingest').value,
+                    chunk_size_llm: document.getElementById('chunk_size_llm').value,
+                    chunk_overlap_llm: document.getElementById('chunk_overlap_llm').value,
+                    similarity_threshold: document.getElementById('similarityThreshold').value
+                };
+                await fetch('/set_chunking_config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(config)
+                });
+                alert('Chunking configuration updated!');
+                fetchChunkingInfo();
+            }
+
+            async function fetchChunkingInfo() {
+                console.log('Fetching chunking info'); // DEBUG
+                const response = await fetch('/get_chunking_info');
+                const info = await response.json();
+                let html = `<b>Num Chunks:</b> ${info.num_chunks || 0}<br><b>Chunk Size:</b> ${info.chunk_size || 0}<br>`;
+                if (info.chunks) {
+                    html += `<b>Chunks Preview:</b><br>`;
+                    info.chunks.forEach((chunk, idx) => {
+                        html += `<div style="color:white; margin-bottom:5px;"><b>Chunk ${idx+1}:</b> ${chunk.substring(0,100)}...</div>`;
+                    });
+                }
+                document.getElementById('chunking_info').innerHTML = html;
+            }
+
+            // CHANGE: New function to fetch and display last retrieval results
+        async function fetchLastRetrieval() {
+            const response = await fetch('/get_last_retrieval');
+            const data = await response.json();
+            document.getElementById('retrievalInfo').textContent = JSON.stringify(data, null, 2);
+        }
+
+            // Attach event listeners
+            const toggleButton = document.querySelector('.toggle-btn');
+            if (toggleButton) toggleButton.addEventListener('click', toggleSidebar);
+
+            const startMic = document.querySelector('.mic-button');
+            if (startMic) startMic.addEventListener('click', startTranscription);
+
+            const stopButton = document.querySelector('button[onclick="stopTranscription()"]');
+            if (stopButton) stopButton.addEventListener('click', stopTranscription);
+
+            const uploadButton = document.querySelector('button[onclick="uploadPDF()"]');
+            if (uploadButton) uploadButton.addEventListener('click', uploadPDF);
+
+            const fetchDocsButton = document.querySelector('button[onclick="fetchDocuments()"]');
+            if (fetchDocsButton) fetchDocsButton.addEventListener('click', fetchDocuments);
+
+            const chunkingButton = document.querySelector('button[onclick="updateChunkingConfig()"]');
+            if (chunkingButton) chunkingButton.addEventListener('click', updateChunkingConfig);
+
+            // Initialize on load
+            fetchWeather();
+            fetchStocks();
+            updateClock();
+            fetchQuote();
+            changeBackground();
+            fetchChunkingConfig();
+            fetchChunkingInfo();
+            setInterval(updateClock, 1000);
+            setInterval(fetchStocks, 100000);
+            setInterval(fetchQuote, 600000);
+            setInterval(changeBackground, 100000);
+            setTimeout(() => {
+                document.querySelector('.sidebar').classList.add('hide-scrollbar');
+            }, 10000);
+        });
+    </script
+
+</head>
+
+</html>

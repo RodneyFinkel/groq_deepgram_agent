@@ -12,7 +12,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DocumentContextManager:
-    def __init__(self):
+    def __init__(self, similarity_threshold=0.1):
         # Using chromadb
         self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
         print("Chroma Initialized")
@@ -24,6 +24,19 @@ class DocumentContextManager:
         # print("Bert initialized")
         self.model = SentenceTransformer('all-MiniLM-L6-v2') # New model
         print("SentenceTransformer Initialized")
+        
+        # Store similarity threshold
+        self.similarity_threshold = similarity_threshold
+        logging.info(f"Initialized with similarity threshold: {self.similarity_threshold}")
+        
+        # CHANGE: Initialize last_raw_results to store raw retrieval data for debugging
+        self.last_raw_results = []
+    
+    def set_similarity_threshold(self, threshold):  # NEW: Set the similarity threshold for document retrieval
+        if not isinstance(threshold, (int, float)) or threshold < 0 or threshold > 1:
+            raise ValueError("Similarity threshold must be a number between 0 and 1")
+        self.similarity_threshold = float(threshold)
+        logging.info(f"Updated similarity threshold to: {self.similarity_threshold}")
         
     # OLD: using BERT 
     # def _embed_text(self, text):
@@ -88,7 +101,7 @@ class DocumentContextManager:
 
     
     #  Using Chromadb
-    def get_similar_documents(self, query, top_k=10, similarity_threshold=0.7, keyword_filter=None):
+    def get_similar_documents(self, query, top_k=10, keyword_filter=None):
         if len(query.strip()) < 3: # skip very short queries
             print('~Query to short, skipping retrieval.')
             return []
@@ -98,7 +111,7 @@ class DocumentContextManager:
         query_params = {
             'query_embeddings': [query_embedding],
             'n_results': top_k,
-            'include': ["documents", "metadatas", "embeddings"]
+            'include': ["documents", "metadatas", "distances"]
         }
         
         results = self.collection.query(**query_params)
@@ -109,11 +122,21 @@ class DocumentContextManager:
         metadatas = results["metadatas"][0] if results["metadatas"] else []
         distances = results["distances"][0] if results["distances"] else [] # NEW
         
+        # NEW: store raw results for debugging and ui
+        self.last_raw_results = [
+            {
+                "doc_id": ids[1],
+                "distance": distances[i],
+                "similarity": 1 - distances[i]
+            } for i in range(len(ids))
+        ]
+        
         # NEW: Similarity threshold filtering
         similar_docs = []
         for i in range(len(ids)):
             similarity = 1 - distances[i] if distances else 0 
-            if similarity >= similarity_threshold:
+            logging.info(f"Raw distance for {ids[i]}: {distances[i]}, similarity: {similarity}") # Log raw scores
+            if similarity >= self.similarity_threshold:
                 similar_docs.append({
                     "doc_id": ids[i],
                     "document": documents[i],
@@ -121,10 +144,10 @@ class DocumentContextManager:
                     "similarity": similarity # Include similirity score if available
                 })
             else:
-                logging.debug(f"Document {ids[i]} filtered out(similarity: {similarity} < {similarity_threshold})")
+                logging.debug(f"Document {ids[i]} filtered out(similarity: {similarity} < {self.similarity_threshold})")
                 
         
-        logging.info(f"Retrieved {len(similar_docs)} documents with similarity >= {similarity_threshold}")
+        logging.info(f"Retrieved {len(similar_docs)} documents with similarity >= {self.similarity_threshold}")
         return similar_docs
 
 

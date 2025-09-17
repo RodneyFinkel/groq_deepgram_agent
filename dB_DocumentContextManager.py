@@ -17,8 +17,8 @@ class DocumentContextManager:
     def add_document(self, filename, text):
         embedding = self._embed_text(text)
         doc = Document(filename=filename, text=text)
-        db.session.add(doc)
-        db.session.commit()
+        #db.session.add(doc)
+        #db.session.commit()
         
 
     def _embed_text(self, text):

@@ -12,9 +12,9 @@ import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
-# from transformers import AutoTokenizer
 # NEW
 import logging
+from transformers import AutoTokenizer # NEW
 
 # NEW: Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -42,8 +42,9 @@ Session(app)
 # Initialize ThreadPoolExecutor
 executor = ThreadPoolExecutor(max_workers=4)
 
+# Initialize with default similarity threshold
+context_manager = DocumentContextManager(similarity_threshold=0.3)
 conversation_manager = ConversationManager()
-context_manager = DocumentContextManager()
 transcription_thread = None # Start the transcription process in a separate thread
 
 UPLOAD_FOLDER = 'uploads'
@@ -53,7 +54,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Pre-load tokenizer globally
-# tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW
+# tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased') # OLD
 
 # Utility Function for chunking text
 # def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST):
@@ -74,14 +76,15 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 #         i += chunk_size - overlap
 #     return chunks
 
-# NEW: Utility Function for chunking text with sentence transformer tokenizer
+# NEW: Utility Function for chunking text with sentence transformer tokenizer (token-aware)
 def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST):
-    
+    tokens = tokenizer.encode(text, add_special_tokens=False) # NEW: change while parameter to len(tokens) from len(text)
     chunks = []
     i = 0
-    while i < len(text):
-        chunk = text[i:i + chunk_size]
-        chunks.append(chunk)
+    while i < len(tokens):
+        chunk_tokens = tokens[i:i + chunk_size]
+        chunk_text = tokenizer.decode(chunk_tokens, skip_special_tokens=True)
+        chunks.append(chunk_text)
         i += chunk_size - overlap
     logging.info(f"Created {len(chunks)} chunks with size {chunk_size} and overlap {overlap}")
     return chunks
@@ -109,7 +112,7 @@ def signin():
 def dashboard():
     if 'email' not in session:
         return redirect(url_for('signin'))
-    return render_template('index5.html')
+    return render_template('index6.html')
 
 @app.route('/signout')
 def signout():
@@ -153,49 +156,6 @@ def stop_transcription():
         return jsonify({"status": "No transcription running"})
     
     
-# NEW: Stream TTS audio
-# @app.route('/stream_tts', methods=['GET'])
-# async def stream_tts():
-#     logging.info("Starting TTS streaming")
-#     async def generate():
-#         text = conversation_manager.llm_response
-#         if not text:
-#             logging.warning("No LLM response for TTS")
-#             yield b""
-#             return
-#         try:
-#             async for chunk in conversation_manager.tts.speak(text):
-#                 yield chunk.cpu().numpy().tobytes()
-#         except Exception as e:
-#             logging.error(f"TTS streaming failed: {e}")
-#             yield b""
-#     return Response(generate(), mimetype='audio/wav')
-
-# # NEW: Handle continuous mic input
-# @app.route('/audio_input', methods=['POST'])
-# async def audio_input():
-#     try:
-#         audio_data = request.get_data()
-#         if conversation_manager.transcription_active:
-#             # NEW: Buffer audio and send to Deepgram
-#             loop = asyncio.get_event_loop()
-#             loop.run_in_executor(None, lambda: conversation_manager.tts.microphone.send(audio_data))
-#             logging.info("Audio data received and sent to Deepgram")
-#         return jsonify({"status": "Audio received"})
-#     except Exception as e:
-#         logging.error(f"Audio input error: {e}")
-#         return jsonify({"status": "Audio input failed"}), 500
-
-
-# @app.route('/get_data')
-# def get_data():
-#     transcript = conversation_manager.transcription_response
-#     llm_response = conversation_manager.llm_response  # Ensure this is accessible
-#     return jsonify({
-#         "transcript": transcript,
-#         "llm_response": llm_response
-#     })
-    
 @app.route('/get_data')
 def get_data():
     if not conversation_manager.transcription_active:
@@ -207,6 +167,39 @@ def get_data():
         "transcript": transcript,
         "llm_response": llm_response
     })
+
+# @app.route('/start_transcription', methods=['POST'])
+# def start_transcription():
+#     global transcription_thread
+#     if not conversation_manager.transcription_active:
+#         if not check_microphone():
+#             return jsonify({"status": "No microphone available"}), 500
+#         transcription_thread = threading.Thread(target=conversation_manager.run_transcription)
+#         transcription_thread.daemon = True
+#         transcription_thread.start()
+#         logging.info("Transcription thread started")
+#         return jsonify({"status": "Transcription started"})
+#     return jsonify({"status": "Transcription already running"})
+
+# @app.route('/stop_transcription', methods=['POST'])
+# def stop_transcription():
+#     global transcription_thread
+#     if conversation_manager.transcription_active:
+#         conversation_manager.stop_transcription()
+#         transcription_thread = None
+#         logging.info('Transcription thread stopped')
+#         return jsonify({"status": "Transcription stopped"})
+#     return jsonify({"status": "No transcription running"})
+
+# @app.route('/get_data')
+# def get_data():
+#     if not conversation_manager.transcription_active:
+#         return jsonify({"status": "Transcription inactive", "transcript": "", "llm_response": ""})
+#     return jsonify({
+#         "status": "Active",
+#         "transcript": conversation_manager.session_state["transcript"],
+#         "llm_response": conversation_manager.session_state["response"]
+#     })
     
 @app.route('/get_chunking_config', methods=['GET'])
 def get_chunking_config():
@@ -214,7 +207,8 @@ def get_chunking_config():
         "chunk_size_ingest": CHUNK_SIZE_INGEST,
         "chunk_overlap_ingest": CHUNK_OVERLAP_INGEST,
         "chunk_size_llm": CHUNK_SIZE_LLM,
-        "chunk_overlap_llm": CHUNK_OVERLAP_LLM
+        "chunk_overlap_llm": CHUNK_OVERLAP_LLM,
+        "similarity_threshold": context_manager.similarity_threshold
     })
 
 @app.route('/set_chunking_config', methods=['POST'])
@@ -225,6 +219,8 @@ def set_chunking_config():
     CHUNK_OVERLAP_INGEST = int(data.get("chunk_overlap_ingest", CHUNK_OVERLAP_INGEST))
     CHUNK_SIZE_LLM = int(data.get("chunk_size_llm", CHUNK_SIZE_LLM))
     CHUNK_OVERLAP_LLM = int(data.get("chunk_overlap_llm", CHUNK_OVERLAP_LLM))
+    similarity_threshold = float(data.get("similarity_threshold", context_manager.similarity_threshold))
+    context_manager.set_similarity_threshold(similarity_threshold)
     return jsonify({"status": "Chunking config updated"})
 
 @app.route('/get_chunking_info', methods=['GET'])
@@ -232,6 +228,12 @@ def get_chunking_info():
     # Example: expose last chunking info from LLM (add this attribute in LanguageModelProcessor)
     info = getattr(conversation_manager.llm, 'last_chunking_info', {})
     return jsonify(info)
+
+@app.route('/get_last_retrieval', methods=['GET'])
+def get_last_retrieval():
+    # Expose last raw retieval results from DocumentContextManager
+    raw_results = getattr(context_manager, "last_raw_results", [])
+    return jsonify(raw_results)
     
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
@@ -320,7 +322,7 @@ def get_context():
     return jsonify({'results': results})
 
 
-# NOT WORKING
+# NOW WORKING
 @app.route('/get_documents', methods=['GET'])
 def get_documents():
     try:

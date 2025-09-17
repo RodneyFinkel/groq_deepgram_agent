@@ -9,7 +9,7 @@ import pyaudio
 
 from alpha_DocumentContextManager import DocumentContextManager
 from chunk_config import CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
-#from transformers import AutoTokenizer
+from transformers import AutoTokenizer
 from sentence_transformers import SentenceTransformer
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -47,13 +47,14 @@ load_dotenv()
 class LanguageModelProcessor:
     def __init__(self, context_manager=None):
         self.llm = ChatGroq(temperature=0, 
-                            model_name="deepseek-r1-distill-llama-70b", 
+                            model_name="deepseek-r1-distill-llama-70b", # this is a new valid model 
                             groq_api_key=os.getenv("GROQ_API_KEY"), 
                             streaming=True,
                             max_retries=3,
                             ) # qwen/qwen3-32b
         # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
-        self.tokenizer = SentenceTransformer('all-MiniLM-L6-v2')._first_module().tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW...less hacky than below
+        # self.tokenizer = SentenceTransformer('all-MiniLM-L6-v2')._first_module().tokenizer # Too hacky
         #self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
@@ -122,7 +123,7 @@ class LanguageModelProcessor:
         # Existing retrieval logic for normal queries
         # Retrieve similar documents based on the user query
             if self.context_manager:
-                similar_docs = self.context_manager.get_similar_documents(text, top_k=10, similarity_threshold=0.7)
+                similar_docs = self.context_manager.get_similar_documents(text, top_k=10)
                 print(f"Similar Docs: {similar_docs}")
                 # context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
                 # context = " ".join([doc['document'] for doc in similar_docs])  # Extract the document text from each result
@@ -199,84 +200,10 @@ class LanguageModelProcessor:
         self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
         logging.info(f"LLM Response: {response['text'][:100]}...")  # Log first 100 chars of response
         return response['text']
-
-# Modified TextToSpeech class to use Chatterbox instead of Deepgram
-# class TextToSpeech:
-#     def __init__(self):
-#         # NEW initialise Chatterbox TTS model
-#         try:
-#             self.tts_model = ChatterboxTTS.from_pretrained(device='cuda' if torch.cuda.is_available() else 'CPU')
-#             self.sr = self.tts_model.sr # Dample rate (~22050 Hz)
-#             logging.info(f"Chatterbox TTS initialized on {self.tts_model.device} with sample rate {self.sr}")
-#         except Exception as e:
-#             logging.error(f"Failed to initialize Chatterbox TTS: {e}")
-#             raise RuntimeError('Chatterbox initialization failed. Ensure Chatterbox-tts is installed.')
-#         # NEW: Track speaking rate and cancellation
-#         self.is_speaking = False
-#         self.cancel_flag = asyncio.Event()
-    
-#     def is_installed(self, lib_name: str) ->bool:
-#         # UNCHANGED: check for ffplay
-#         return shutil.which(lib_name) is not None
-    
-#     async def speak(self, text):
-#         # NEW robust error checking for TTS
-#         if not self.is_installed("ffplay"):
-#             logging.error("ffplay not found required for audio playback.")
-#             raise ValueError('ffplay not found, necessary to stream audio.')
-        
-#         self.is_speaking = True
-#         self.cancel_flag.clear()
-#         logging.info(f"Starting TTS for text: {text[:25]}")
-        
-#         # NEW: COnfigure ffplay with chatterbox sample rate
-#         player_command =    ["ffplay", "-autoexit", "-nodisp", "-i", "pipe:0", "-ar", str(self.sr)]  
-#         try:
-#             player_process = subprocess.Popen(
-#                 player_command, 
-#                 stdin=subprocess.PIPE,
-#                 stdout=subprocess.DEVNULL,
-#                 stderr=subprocess.DEVNULL,
-#             )   
-#         except Exception as e:
-#             logging.erro(f"failed to start ffplay: {e}")
-#             self.is_speaking = False
-#             raise RuntimeError('ffplay subprocess failed.')
-        
-#         try:
-#             # NEW: Check for streaming support, fallback to non-streaming
-#             if hasattr(self.tts_model, 'generate_stream'):
-#                 async for chunk in self.tts_model.generate_stream(text, batch_size=1):
-#                     if self.cancel_flag.is_set():
-#                         logging.info("TTS interrupted by keyword detection")
-#                         break
-#                     chunk_bytes = chunk.cpu().numpy().tobytes()
-#                     player_process.stdin.write(chunk_bytes)
-#                     player_process.stdin.flush()
-#                     await asyncio.sleep(0.01)  # Yield for interruption check
-#             else:
-#                 # Fallback to non-streaming
-#                 logging.warning("Streaming not supported, using non-streaming fallback")
-#                 wav = self.tts_model.generate(text)
-#                 chunk_bytes = wav.cpu().numpy().tobytes()
-#                 player_process.stdin.write(chunk_bytes)
-#                 player_process.stdin.flush()
-#         except Exception as e:
-#             logging.error(f"TTS generation failed: {e}")
-#         finally:
-#             if player_process.stdin:
-#                 player_process.stdin.close()
-#             player_process.wait()
-#             self.is_speaking = False
-#             logging.info("TTS completed")
-        
-#     def stop_speaking(self):
-#         self.cancel_flag.set()
-#         logging.info('TTS stop requested')
         
             
 
-# OLD TTS Class using DEEPGRAM
+# TTS Class using DEEPGRAM
 class TextToSpeech:
     
     DG_API_KEY = os.getenv("DEEPGRAM_API_KEY")
@@ -313,6 +240,7 @@ class TextToSpeech:
                 if chunk:
                     player_process.stdin.write(chunk)
                     player_process.stdin.flush()
+                
 
         if player_process.stdin:
             player_process.stdin.close()
@@ -336,84 +264,6 @@ class TranscriptCollector:
     
 transcript_collector = TranscriptCollector()
 
-# CHANGED TO ACCOMODATE INTERUPTION KEYWORDS
-# async def get_transcript(callback, tts: TextToSpeech):
-#     # NEW: Events for transcition and interruption
-#     transcription_complete = asyncio.Event()
-#     interruption_detected = asyncio.Event()
-#     # NEW: regex for keywords optmized for speed
-#     interruption_keywords = r"\b(hold on|listen|let me interrupt|but|wait)\b"
-    
-#     try:
-#         config = DeepgramClientOptions(options={"keepalive": "true"})
-#         deepgram = DeepgramClient("", config)
-#         dg_connection = deepgram.listen.asynclive.v("1")
-#         logging.info('Deepgram listening started')
-        
-#         async def on_message(self, result, **kwargs):
-#             sentence = result.channel.alternatives[0].transcript
-#             if not sentence:
-#                 return
-            
-#             # NEW: Check for interruption keywords
-#             if re.search(interruption_keywords, sentence.lower(), re.IGNORECASE):
-#                 logging.info(f"Interruption detected: {sentence}")
-#                 tts.stop_speaking()
-#                 interruption_detected.set()
-#                 transcript_collector.add_part(sentence)
-#                 full_sentence = transcript_collector.get_full_transcript().strip()
-#                 if full_sentence:
-#                     logging.info(f"Human (interruption): {full_sentence}")
-#                     callback(full_sentence)
-#                     transcript_collector.reset()
-#                     transcription_complete.set()
-#                 return
-            
-#             if not result.speech_final:
-#                 transcript_collector.add_part(sentence)
-#             else:
-#                 transcript_collector.add_part(sentence)
-#                 full_sentence = transcript_collector.get_full_transcript()
-#                 if full_sentence.strip():
-#                     full_sentence = full_sentence.strip()
-#                     logging.info(f"Human: {full_sentence}")
-#                     callback(full_sentence)
-#                     transcript_collector.reset()
-#                     transcription_complete.set()
-
-#         dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
-
-#         # MODIFIED: Lower endpointing for faster interruption
-#         options = LiveOptions(
-#             model="nova-3",
-#             punctuate=True,
-#             language="en-US",
-#             encoding="linear16",
-#             channels=1,
-#             sample_rate=16000,
-#             endpointing=50,  # Reduced for faster detection
-#             smart_format=True,
-#         )
-
-#         await dg_connection.start(options)
-#         microphone = Microphone(dg_connection.send)
-#         microphone.start()
-#         logging.info("Microphone started")
-
-#         # NEW: Wait for transcription or interruption
-#         await asyncio.gather(
-#             transcription_complete.wait(),
-#             interruption_detected.wait(),
-#             return_exceptions=True
-#         )
-
-#         microphone.finish()
-#         await dg_connection.finish()
-#         logging.info("Transcription finished")
-
-#     except Exception as e:
-#         logging.error(f"Could not open socket: {e}")
-            
             
 def check_microphone():
     p = pyaudio.PyAudio()
