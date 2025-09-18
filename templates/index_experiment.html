@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickAgent Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1', // Indigo
+                        secondary: '#10b981', // Emerald
+                        accent: '#ec4899', // Pink
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom glassmorphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .glass-button {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        /* Slider thumb styles */
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+        .slider::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+        /* Quote styling */
+        .quote::before {
+            content: '"';
+        }
+        .quote::after {
+            content: '"';
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col font-sans antialiased">
+
+    {% if 'email' in session %}
+    
+    <!-- Header -->
+    <header class="glass shadow-sm border-b border-gray-100/50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900">QuickAgent</h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-700">Hello, {{ session['username'] }}</span>
+                <button id="themeToggle" class="glass-button border border-gray-200/50 p-2 rounded-full hover:bg-white/30 transition-all duration-200" title="Toggle theme">
+                    <svg id="lightIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="darkIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                </button>
+                <a href="{{ url_for('signout') }}" class="glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium transition-all duration-200">Sign Out</a>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Greeting and Quote -->
+    <section class="glass max-w-2xl mx-auto mt-6 p-6 rounded-xl text-center transition-all duration-300 hover:shadow-lg">
+        <h2 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2">Hello, {{ session['username'] }}</h2>
+        <p class="text-sm md:text-base text-gray-700 italic quote">Empower your conversations with AI-driven insights.</p>
+    </section>
+    
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8 flex flex-1">
+        <!-- Sidebar: Controls -->
+        <aside class="w-80 pr-6 space-y-6 lg:sticky lg:top-8">
+            <!-- Mobile Sidebar Toggle -->
+            <button id="sidebarToggle" class="lg:hidden glass-button border border-gray-200/50 p-2 rounded-full hover:bg-white/30 transition-all duration-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+            <div id="sidebar" class="space-y-6 hidden lg:block">
+                <!-- Transcriber Controls -->
+                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4 flex justify-between items-center">
+                        Transcriber
+                        <span id="transcriberStatus" class="text-xs px-2 py-1 rounded-full bg-gray-200/80 text-gray-600">Idle</span>
+                    </h2>
+                    <div class="space-y-3">
+                        <button onclick="startTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200">
+                            <svg id="startIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Start</span>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Start voice transcription</span>
+                        </button>
+                        <button onclick="stopTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-gray-800 hover:text-gray-900 text-sm font-medium transition-all duration-200">
+                            Stop
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Stop transcription</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Upload Card -->
+                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4">RAG Upload</h2>
+                    <input type="file" id="pdfUpload" multiple accept=".pdf" class="hidden">
+                    <label for="pdfUpload" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-secondary hover:text-emerald-600 text-sm font-medium cursor-pointer flex justify-center transition-all duration-200">
+                        Select PDFs
+                        <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Choose PDF files</span>
+                    </label>
+                    <button onclick="uploadPDF()" class="group relative w-full mt-2 glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium transition-all duration-200">
+                        Upload
+                        <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Upload selected PDFs</span>
+                    </button>
+                    <div id="uploadProgress" class="mt-2 h-2 bg-gray-200/50 rounded-full hidden">
+                        <div class="h-full bg-secondary rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                
+                <!-- Config Accordion -->
+                <div class="glass rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg">
+                    <button onclick="toggleAccordion('searchConfig')" class="w-full px-6 py-4 text-lg font-semibold flex justify-between items-center border-b border-gray-200/50">
+                        Search Config
+                        <svg class="w-5 h-5 transition-transform" id="searchArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="searchConfig" class="px-6 py-4 space-y-4">
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Similarity Threshold</label>
+                            <input type="range" id="similarity_threshold" min="0" max="1" step="0.01" value="0.3" class="w-full slider">
+                            <div class="flex justify-between text-xs mt-1">
+                                <span>0</span>
+                                <span id="similarity_value">0.3</span>
+                                <span>1</span>
+                            </div>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Adjust retrieval relevance</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">BM25 Weight</label>
+                            <input type="range" id="bm25_weight" min="0" max="1" step="0.1" value="0.5" class="w-full slider">
+                            <div class="flex justify-between text-xs mt-1">
+                                <span>0</span>
+                                <span id="bm25_value">0.5</span>
+                                <span>1</span>
+                            </div>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Keyword search weight</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Semantic Weight</label>
+                            <input type="range" id="semantic_weight" min="0" max="1" step="0.1" value="0.5" class="w-full slider">
+                            <div class="flex justify-between text-xs mt-1">
+                                <span>0</span>
+                                <span id="semantic_value">0.5</span>
+                                <span>1</span>
+                            </div>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Semantic search weight</span>
+                        </div>
+                        <button onclick="updateSearchConfig()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-secondary hover:text-emerald-600 text-sm font-medium transition-all duration-200">
+                            Update
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Apply search settings</span>
+                        </button>
+                    </div>
+                    
+                    <button onclick="toggleAccordion('chunkingConfig')" class="w-full px-6 py-4 text-lg font-semibold flex justify-between items-center border-b border-gray-200/50">
+                        Chunking Config
+                        <svg class="w-5 h-5 transition-transform" id="chunkingArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="chunkingConfig" class="px-6 py-4 space-y-4 hidden">
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Ingest Chunk Size</label>
+                            <input type="number" id="ingest_chunk_size" class="w-full bg-gray-50/80 border border-gray-200/50 rounded-lg p-2">
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Size of document chunks</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Ingest Overlap</label>
+                            <input type="number" id="ingest_overlap" class="w-full bg-gray-50/80 border border-gray-200/50 rounded-lg p-2">
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Overlap between chunks</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">LLM Chunk Size</label>
+                            <input type="number" id="llm_chunk_size" class="w-full bg-gray-50/80 border border-gray-200/50 rounded-lg p-2">
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Size for LLM processing</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">LLM Overlap</label>
+                            <input type="number" id="llm_overlap" class="w-full bg-gray-50/80 border border-gray-200/50 rounded-lg p-2">
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Overlap for LLM chunks</span>
+                        </div>
+                        <button onclick="updateChunkingConfig()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-secondary hover:text-emerald-600 text-sm font-medium transition-all duration-200">
+                            Update
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Apply chunking settings</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Area: Displays -->
+        <main class="flex-1 space-y-6">
+            <!-- Documents Panel -->
+            <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">Documents</h2>
+                    <button onclick="listDocuments()" class="group relative glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium transition-all duration-200">
+                        Refresh
+                        <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Reload document list</span>
+                    </button>
+                </div>
+                <div class="overflow-auto max-h-96">
+                    <table class="w-full text-sm">
+                        <thead class="sticky top-0 glass">
+                            <tr class="border-b border-gray-200/50">
+                                <th class="py-2 text-left text-gray-700">Filename</th>
+                                <th class="py-2 text-left text-gray-700">Summary</th>
+                                <th class="py-2 text-left text-gray-700">Upload Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="documentsBody" class="divide-y divide-gray-200/50"></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Outputs Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Transcript -->
+                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4">Transcript</h2>
+                    <div id="transcript" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No transcript available yet.</div>
+                </div>
+                
+                <!-- LLM Response -->
+                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4">LLM Response</h2>
+                    <div id="response" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No response yet.</div>
+                </div>
+                
+                <!-- Retrieval Info -->
+                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4">Last Retrieval</h2>
+                    <div id="retrieval-info" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No data</div>
+                </div>
+                
+                <!-- Chunking Info -->
+                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                    <h2 class="text-lg font-semibold mb-4">Chunking Info</h2>
+                    <div id="chunking-info" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No data</div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <footer class="glass border-t border-gray-100/50 py-4 text-center text-sm text-gray-600">
+        © 2025 QuickAgent. All rights reserved.
+    </footer>
+    
+    {% endif %}
+    
+    <script>
+        // Theme Toggle
+        const html = document.documentElement;
+        const lightIcon = document.getElementById('lightIcon');
+        const darkIcon = document.getElementById('darkIcon');
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
+            lightIcon.classList.toggle('hidden');
+            darkIcon.classList.toggle('hidden');
+        });
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+            lightIcon.classList.remove('hidden');
+            darkIcon.classList.add('hidden');
+        } else {
+            html.classList.remove('dark');
+            lightIcon.classList.add('hidden');
+            darkIcon.classList.remove('hidden');
+        }
+        
+        // Sidebar Toggle (Mobile)
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('hidden');
+        });
+        
+        // Accordion Toggle
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const arrow = document.getElementById(id + 'Arrow');
+            content.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+        
+        // Slider Updates
+        ['similarity_threshold', 'bm25_weight', 'semantic_weight'].forEach(id => {
+            const slider = document.getElementById(id);
+            const valueSpan = document.getElementById(id + '_value');
+            slider.addEventListener('input', () => valueSpan.textContent = parseFloat(slider.value).toFixed(id === 'similarity_threshold' ? 2 : 1));
+        });
+        
+        // Load Configs
+        fetch('/get_chunking_config').then(res => res.json()).then(config => {
+            document.getElementById('ingest_chunk_size').value = config.chunk_size_ingest || 1000;
+            document.getElementById('ingest_overlap').value = config.chunk_overlap_ingest || 200;
+            document.getElementById('llm_chunk_size').value = config.chunk_size_llm || 1000;
+            document.getElementById('llm_overlap').value = config.chunk_overlap_llm || 200;
+            document.getElementById('similarity_threshold').value = config.similarity_threshold || 0.3;
+            document.getElementById('similarity_value').textContent = (config.similarity_threshold || 0.3).toFixed(2);
+            document.getElementById('bm25_weight').value = config.bm25_weight || 0.5;
+            document.getElementById('bm25_value').textContent = (config.bm25_weight || 0.5).toFixed(1);
+            document.getElementById('semantic_weight').value = config.semantic_weight || 0.5;
+            document.getElementById('semantic_value').textContent = (config.semantic_weight || 0.5).toFixed(1);
+        });
+        
+        // Start/Stop Transcription
+        function startTranscription() {
+            document.getElementById('startIcon').classList.add('animate-spin');
+            fetch('/start_transcription', {method: 'POST'}).then(res => res.json()).then(data => {
+                document.getElementById('transcriberStatus').textContent = data.status || 'Active';
+            });
+        }
+        function stopTranscription() {
+            document.getElementById('startIcon').classList.remove('animate-spin');
+            fetch('/stop_transcription', {method: 'POST'}).then(res => res.json()).then(data => {
+                document.getElementById('transcriberStatus').textContent = data.status || 'Idle';
+            });
+        }
+        
+        // Upload PDF with Progress
+        function uploadPDF() {
+            const files = document.getElementById('pdfUpload').files;
+            if (!files.length) return alert('No files selected');
+            const formData = new FormData();
+            for (let file of files) formData.append('pdf', file);
+            const progressBar = document.getElementById('uploadProgress');
+            progressBar.classList.remove('hidden');
+            progressBar.querySelector('div').style.width = '0%';
+            fetch('/upload_pdf', {method: 'POST', body: formData})
+                .then(res => res.json())
+                .then(data => {
+                    progressBar.querySelector('div').style.width = '100%';
+                    setTimeout(() => progressBar.classList.add('hidden'), 1000);
+                    alert(data.status || 'Upload complete!');
+                });
+        }
+        
+        // List Documents
+        function listDocuments() {
+            fetch('/get_documents').then(res => res.json()).then(docs => {
+                const tbody = document.getElementById('documentsBody');
+                tbody.innerHTML = docs.length ? docs.map(doc => `
+                    <tr class="hover:bg-gray-100/50 transition">
+                        <td class="py-2">${doc.filename}</td>
+                        <td class="py-2">${doc.summary}</td>
+                        <td class="py-2">${new Date(doc.upload_time * 1000).toLocaleString()}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="3" class="py-2 text-center text-gray-500">No documents</td></tr>';
+            });
+        }
+        
+        // Poll for Data
+        setInterval(() => {
+            fetch('/get_data').then(res => res.json()).then(data => {
+                document.getElementById('transcript').textContent = data.transcript || 'No transcript available yet.';
+                document.getElementById('response').textContent = data.llm_response || 'No response yet.';
+                document.getElementById('transcriberStatus').textContent = data.status || 'Idle';
+            });
+            fetch('/get_last_retrieval').then(res => res.json()).then(results => {
+                document.getElementById('retrieval-info').innerHTML = results.length ? results.map(r => `
+                    <div class="mb-2"><span class="font-medium">${r.doc_id}</span>: ${r.similarity.toFixed(3)}</div>
+                `).join('') : 'No data';
+            });
+            fetch('/get_chunking_info').then(res => res.json()).then(info => {
+                document.getElementById('chunking-info').innerHTML = Object.entries(info).length ? Object.entries(info).map(([k, v]) => `
+                    <div class="mb-2"><span class="font-medium">${k}:</span> ${JSON.stringify(v)}</div>
+                `).join('') : 'No data';
+            });
+        }, 3000);
+        
+        // Initial Loads
+        listDocuments();
+    </script>
+</body>
+</html>

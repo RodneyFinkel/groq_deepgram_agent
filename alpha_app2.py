@@ -112,7 +112,7 @@ def signin():
 def dashboard():
     if 'email' not in session:
         return redirect(url_for('signin'))
-    return render_template('index6.html')
+    return render_template('index_experiment2.html')
 
 @app.route('/signout')
 def signout():
@@ -142,6 +142,8 @@ def start_transcription():
     #return jsonify({"status": "Transcription already running"})
     else:
         return jsonify({"status": "Transcription already running"})
+
+
 
 @app.route('/stop_transcription', methods=['POST'])
 def stop_transcription():
