@@ -112,7 +112,7 @@ def signin():
 def dashboard():
     if 'email' not in session:
         return redirect(url_for('signin'))
-    return render_template('index_experiment2.html')
+    return render_template('index_experiment3.html')
 
 @app.route('/signout')
 def signout():
