@@ -1,4 +1,4 @@
-# AI Rag Agent demo
+<img width="1680" height="1050" alt="Screenshot 2025-08-31 at 3 12 15" src="https://github.com/user-attachments/assets/b2c93354-c2ce-4d61-8a82-0e623dcbfabc" /># AI Rag Agent demo
 This demo showcases a MultiModal AI RAG Agent that leverages Text-To-Speech (TTS) and Speech-To-Text (STT) for LLM interactions using Deepgram and Groq LPU's.
 
 Sentence tranformer to build vector embeddings for the user message and uploaded documents that undergo cosine similarity testing to find the most relevant, for LLM context management.
@@ -37,7 +37,9 @@ python3 alpha_app2.py
 ![Screen Shot 2024-07-27 at 5 50 48](https://github.com/user-attachments/assets/d72bbeb1-447a-4872-85bc-cde071a26e68)
 
 Toggle the sidebar for the AI RAG AGENT
-![Screen Shot 2024-07-27 at 5 52 13](https://github.com/user-attachments/assets/0a5232f8-b239-44d9-8990-d9975fe314e0)
+
+
+<img width="1680" height="1050" alt="Screenshot 2025-08-31 at 3 12 15" src="https://github.com/user-attachments/assets/379644e3-0300-463b-bea3-d0ec460bcb85" />
 
 
 
