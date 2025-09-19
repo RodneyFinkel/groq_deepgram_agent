@@ -26,6 +26,10 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 LAUNC<img width="1680" height="1050" alt="Screenshot 2025-08-31 at 3 03 38" src="https://github.com/user-attachments/assets/c03d8d7a-ed32-4e9a-afbe-22330a00bfb4" />
 H FLASK WEB APP:
 python3 alpha_app2.py 
+
+<img width="1915" height="1080" alt="Screenshot 2025-09-19 at 9 26 05" src="https://github.com/user-attachments/assets/c3fafb70-2baa-42a6-af6b-45656a5606da" />
+
+
 <img width="1915" height="1077" alt="Screenshot 2025-09-18 at 6 57 25" src="https://github.com/user-attachments/assets/0a9c8931-c3ca-4be2-9097-5b7f81344699" />
 
 ![Screen Shot 2024-07-27 at 5 50 48](https://github.com/user-attachments/assets/d72bbeb1-447a-4872-85bc-cde071a26e68)
