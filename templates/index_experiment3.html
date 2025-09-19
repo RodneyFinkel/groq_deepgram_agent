@@ -30,6 +30,7 @@
     </script>
 
     <style>
+ 
         /* Custom glassmorphism effect */
         .glass {
             background: rgba(255, 255, 255, 0.8);
@@ -67,14 +68,170 @@
         .quote::after {
             content: '"';
         }
+
+        .mic-checkbox {
+  display: none;
+}
+
+.mic-checkbox:checked + .mic-button {
+  transform: rotateY(180deg);
+}
+
+.button-container {
+  perspective: 500px;
+  -moz-perspective: 500px;
+  -webkit-perspective: 500px;
+}
+
+.mic-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  width: 200px;
+  border-radius: 100%;
+  transition: transform 0.4s;
+  border: 2px solid #47aca9;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  position: relative;
+}
+
+.button-message,
+.mic {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+}
+
+.button-message {
+  position: absolute;
+  width: 50px;
+  color: #333; /* Darker text color */
+  font-family: "Arimo", sans-serif;
+  font-weight: 700;
+  font-size: 25px;
+  text-align: center;
+  line-height: 20px;
+  z-index: 2;
+  transform: rotateY(0deg);
+  pointer-events: none;
+  left: 58px;
+  top: 71px;
+}
+
+.mic-button-loader {
+  position: absolute;
+  height: 202px;
+  width: 200px;
+  background-color: transparent;
+  transform: rotateY(180deg);
+  top: -61px;
+  left: -101px;
+}
+
+.mic-checkbox:checked + .mic-button > .mic > .mic-button-loader {
+  border-top: 2.5px solid #13ef95;
+  border-radius: 100%;
+  animation: borderLoader 1.3s 0.2s ease-in-out infinite;
+}
+
+.mic {
+  position: relative;
+  top: -17px;
+  border: 20px solid #47aca9;
+  height: 48px;
+  width: 0;
+  border-radius: 45px;
+  transform: rotateY(180deg);
+}
+
+.mic:after,
+.mic:before,
+.mic-base {
+  position: absolute;
+}
+
+.mic:after {
+  content: "";
+  top: 16px;
+  left: -30px;
+  height: 57px;
+  width: 50px;
+  background-color: transparent;
+  border: 5px solid #47aca9;
+  border-bottom-left-radius: 102px;
+  border-bottom-right-radius: 110px;
+  border-top: 0;
+}
+
+.mic:before {
+  content: "";
+  top: 77px;
+  left: -2px;
+  border-bottom: 18px solid #47aca9;
+  border-left: 3px solid #47aca9;
+  border-right: 3px solid #47aca9;
+}
+
+.mic-base {
+  top: 95px;
+  left: -14px;
+  border-bottom: 7px solid #47aca9;
+  border-left: 15px solid #47aca9;
+  border-right: 15px solid #47aca9;
+}
+
+@keyframes borderLoader {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
+}
+
+#captions {
+  color: #333; /* Darker text color */
+  font-size: 24px;
+  font-family: "Inter", sans-serif;
+  margin: 10px 0;
+  text-align: center;
+  width: 80%;
+  background-color: #f1f1f1; /* Light grey background for captions */
+  padding: 10px;
+  border-radius: 10px;
+}
+
+h2 {
+  font-family: "Arimo", sans-serif;
+  font-size: 32px;
+  margin-top: 20px;
+  letter-spacing: -0.02em;
+  opacity: 1;
+  text-align: center;
+}
+
+.button-container {
+  display: flex;
+  gap: 16px;
+}
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col font-sans antialiased">
 
+    
+
     <header class="glass shadow-sm border-b border-gray-100/50">
+    
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
+                <img class="navbar-logo w-16 h-16" src="{{ url_for('static', filename='alep.png') }}" alt="Logo">
+            </a>
             <h1 class="text-2xl font-bold text-gray-900">QuickRagAgent</h1>
             <div class="flex items-center space-x-4">
+                
                 <span class="text-sm text-gray-700">Hello, {{ session['username'] }}</span>
                 <div id="weatherDisplay" class="glass rounded-full px-3 py-1 text-sm text-gray-700"></div>
                 <button id="themeToggle" class="group relative glass-button border border-gray-200/50 p-2 rounded-full hover:bg-white/30 transition-all duration-200" title="Toggle theme">
@@ -110,15 +267,33 @@
             <div id="sidebar" class="space-y-6 hidden lg:block">
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2 class="text-lg font-semibold mb-4 flex justify-between items-center">
-                        Transcriber
+                        STT-vectorDB-LLM-TTS
                         <span id="transcriberStatus" class="text-xs px-2 py-1 rounded-full bg-gray-200/80 text-gray-600">Idle</span>
                     </h2>
                     <div class="space-y-3">
-                        <button onclick="startTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200">
+                        <div class="button-container">
+                            <div class="content">
+                                <div class="button-container">
+                                    <input type="checkbox" id="record" class="mic-checkbox" />
+                                    <label for="record" class="mic-button" onclick="startTranscription()">
+                                        <div class="mic">
+                                            <div class="mic-button-loader"></div>
+                                            <div class="mic-base"></div>
+                                        </div>
+                                        <div class="button-message">
+                                            <span>&nbsp;</span>
+                                            <span> START </span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+            
+        <div>
+                        <!-- <button onclick="startTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200">
                             <svg id="startIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             <span>Start</span>
                             <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Start voice transcription</span>
-                        </button>
+                        </button> -->
                         <button onclick="stopTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-gray-800 hover:text-gray-900 text-sm font-medium transition-all duration-200">
                             Stop
                             <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Stop transcription</span>
@@ -321,7 +496,7 @@
                     .then(data => {
                         if (data.status === 'Transcription started') {
                             document.getElementById('transcriberStatus').textContent = 'Active';
-                            document.getElementById('startIcon').classList.add('hidden');
+                            document.getElementById('record').classList.add('hidden');
                             startPolling();
                         } else {
                             alert(data.status);
