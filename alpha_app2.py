@@ -43,7 +43,7 @@ Session(app)
 executor = ThreadPoolExecutor(max_workers=4)
 
 # Initialize with default similarity threshold
-context_manager = DocumentContextManager(similarity_threshold=0.3)
+context_manager = DocumentContextManager(similarity_threshold=0.1)
 conversation_manager = ConversationManager()
 transcription_thread = None # Start the transcription process in a separate thread
 
@@ -236,7 +236,8 @@ def get_last_retrieval():
     # Expose last raw retieval results from DocumentContextManager
     raw_results = getattr(context_manager, "last_raw_results", [])
     return jsonify(raw_results)
-    
+
+# Batch upload endpoint    
 @app.route('/upload_pdf', methods=['POST'])
 def upload_pdf():
     if 'pdf' not in request.files:
@@ -293,26 +294,25 @@ def upload_pdf():
         "details": results
     }), 200 if any(res['status'] == 'success' for res in results) else 400
     
-    # OLD Single file handling
-    # if file and file.filename.endswith('.pdf'):
-    #     filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    #     file.save(filepath)
-
-    #     #Extract text from PDF and set it in the ConversationManager
-    #     text = extract_text_from_pdf(filepath)
-    #     # Chunk text before embedding, use utility function chunk_text
-    #     chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
-    #     for idx, chunk in enumerate(chunks):
-    #         doc_id = f"{file.filename}_chunk_{idx}"
-    #         context_manager.add_document(doc_id, chunk, file.filename)
-    #     # conversation_manager.set_pdf_text(text)
+@app.route('/delete_document', methods=['POST'])
+def delete_document():
+    try:
+        data = request.json
+        doc_id = data.get('doc_id')
+        if not doc_id:
+            return jsonify({"status": "No doc_id proviceed"}), 400
+        # Check if document exists
+        existing = context_manager.collection.get(ids=[doc_id])
+        if not existing['ids']:
+            return jsonify({"status": f"Document {doc_id} not found"}), 400
+        context_manager.collection.delete(ids=[doc_id])
+        logging.info(f"Deleted document {doc_id}")
+        return jsonify({"status": f"Document {doc_id} deleted successfully"})
+    except Exception as e:
+        logging.error(f"Error deleting document {doc_id}: {str(e)}")
+        return jsonify({"status": "Error deleting document", "error": str(e)}), 500
     
-    #     # doc_id = file.filename
-    #     # context_manager.add_document(doc_id, text, file.filename)
-        
-    #     return jsonify({"status": "File uploaded, text extracted and chunked"}), 200
     
-    # return jsonify({"status": "Invalid file format. only PDF's are allowed"}), 400
 
 @app.route('/get_context', methods=['POST'])
 def get_context():
@@ -349,7 +349,6 @@ def query():
     query_text = request.json.get('query')
     if not query_text:
         return jsonify({"status": "No query provided"}), 400
-
     # Process the query with document context
     response_text = conversation_manager.llm.process(query_text)
     return jsonify({"response": response_text})

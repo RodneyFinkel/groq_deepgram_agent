@@ -125,7 +125,7 @@ class DocumentContextManager:
         # NEW: store raw results for debugging and ui
         self.last_raw_results = [
             {
-                "doc_id": ids[1],
+                "doc_id": ids[i],
                 "distance": distances[i],
                 "similarity": 1 - distances[i]
             } for i in range(len(ids))

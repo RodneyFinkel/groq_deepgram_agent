@@ -222,7 +222,7 @@ h2 {
 <body class="bg-gray-50 min-h-screen flex flex-col font-sans antialiased">
 
     
-
+    
     <header class="glass shadow-sm border-b border-gray-100/50">
     
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -244,6 +244,7 @@ h2 {
             </div>
         </div>
     </header>
+    
 
     <section class="glass w-3/4 mx-auto mt-6 p-4 rounded-xl transition-all duration-300 hover:shadow-lg">
         <div class="overflow-hidden">
@@ -377,10 +378,12 @@ h2 {
             <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-semibold">Documents</h2>
-                    <button onclick="listDocuments()" class="group relative glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium transition-all duration-200">
-                        Refresh
-                        <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Reload document list</span>
-                    </button>
+                    <div class="flex items-center space-x-4">
+                        <input type="text" id="documentSearch" class="bg-gray-50/80 border border-gray-200/50 rounded-lg p-2 text-sm" placeholder="Search by filename or summary">
+                        <button onclick="listDocuments()" class="group relative glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium transition-all duration-200">
+                            Refresh
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Reload document list</span>
+                        </button>
                 </div>
                 <div class="overflow-auto max-h-96">
                     <table class="w-full text-sm">
@@ -389,6 +392,7 @@ h2 {
                                 <th class="py-2 text-left text-gray-700">Filename</th>
                                 <th class="py-2 text-left text-gray-700">Summary</th>
                                 <th class="py-2 text-left text-gray-700">Upload Time</th>
+                                <th class="py-2 text-left text-gray-700">Action</th>
                             </tr>
                         </thead>
                         <tbody id="documentsBody" class="divide-y divide-gray-200/50"></tbody>
@@ -570,24 +574,59 @@ h2 {
             }
 
             // Documents
+            let allDocuments = []
             function listDocuments() {
                 fetch('/get_documents')
                     .then(response => response.json())
                     .then(documents => {
+                        allDocuments = documents // Cache all documents
+                        const searchQuery = document.getElementById('documentSearch').value.toLowerCase();
+                        const filteredDocuments = searchQuery
+                            ? documents.filter(doc =>
+                            doc.filename.toLowerCase().includes(searchQuery) ||
+                            doc.summary.toLowerCase().includes(searchQuery)
+                            )
+                            : documents;
                         const tbody = document.getElementById('documentsBody');
                         tbody.innerHTML = '';
-                        documents.forEach(doc => {
+                        filteredDocuments.forEach(doc => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
                                 <td class="py-2 text-left">${doc.filename}</td>
                                 <td class="py-2 text-left">${doc.summary}</td>
                                 <td class="py-2 text-left">${doc.upload_time}</td>
+                                <td class="py-2 text-left">
+                                    <button onclick="deleteDocument('${doc.doc_id}')" class="group relative glass-button border border-gray-200/50 px-2 py-1 rounded-full hover:bg-red-100/30 text-red-600 hover:text-red-700 text-sm font-medium transition-all duration-200">
+                                        Delete
+                                        <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Delete document</span>
+                                    </button>
+                                </td>
                             `;
                             tbody.appendChild(row);
                         });
                     });
             }
             listDocuments();
+
+            // Delete Document
+            function deleteDocument(docId) {
+                if (confirm(`Are you sure you want to delete document ${docId}?`)) {
+                    fetch('/delete_document', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ doc_id: docId })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            alert(data.status);
+                            listDocuments(); // Refresh table after deletion
+                        })
+                        .catch(error => alert('Error deleting document: ' + error));
+                }
+            }
+
+            // Search Documents
+            document.getElementById('documentSearch').addEventListener('input', listDocuments);
 
             // Config Accordion
             function toggleAccordion(id) {
@@ -680,6 +719,7 @@ h2 {
             window.stopTranscription = stopTranscription;
             window.uploadPDF = uploadPDF;
             window.listDocuments = listDocuments;
+            window.deleteDocument = deleteDocument;
             window.newQuote = newQuote;
             window.toggleAccordion = toggleAccordion;
             window.updateSearchConfig = updateSearchConfig;
