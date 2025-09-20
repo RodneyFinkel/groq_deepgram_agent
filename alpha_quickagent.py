@@ -260,7 +260,7 @@ class TranscriptCollector:
     
 transcript_collector = TranscriptCollector()
 
-            
+# Utility Function           
 def check_microphone():
     p = pyaudio.PyAudio()
     try:
