@@ -172,7 +172,7 @@ def set_chunking_config():
     context_manager.set_similarity_threshold(similarity_threshold)
     return jsonify({"status": "Chunking config updated"})
 
-@app.route('/get_retrieval_config, methods=[GET]')
+@app.route('/get_retrieval_config', methods=['GET'])
 def get_retrieval_config():
     try:
         config = context_manager.get_retrieval_config()
@@ -189,7 +189,7 @@ def set_retrieval_config():
         logging.info(f"Request payload: {data}")
         if not data:
             logging.error('No JSON payload provided')
-            return jsonify*{"status": " Error: No JSON payload provided"}, 400
+            return jsonify({"status": " Error: No JSON payload provided"}), 400
         
         # Initialize config with defaults
         config = {
