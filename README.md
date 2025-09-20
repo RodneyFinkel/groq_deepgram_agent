@@ -26,6 +26,9 @@ setx /M PATH "%PATH%;C:\ffmpeg\ffmpeg-<version>\bin"
 
 LAUNCH FLASK WEB APP:
 
+<img width="1918" height="1080" alt="Screenshot 2025-09-21 at 1 40 53" src="https://github.com/user-attachments/assets/c701166b-f892-46ab-8fa1-74dffb625928" />
+
+
 <img width="1918" height="1076" alt="Screenshot 2025-09-19 at 19 56 14" src="https://github.com/user-attachments/assets/89be7d48-2a2f-4130-a68e-e73939ee0bd6" />
 
 
