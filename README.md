@@ -2,7 +2,7 @@
 This demo showcases a MultiModal AI RAG Agent that leverages Text-To-Speech (TTS) and Speech-To-Text (STT) for LLM interactions using Deepgram and Groq LPU's.
 
 Sentence Tranformers to build vector embeddings for the user message and uploaded documents that undergo cosine similarity testing to find the most relevant, for LLM context management.
-Dense and Sparse retrieval pipelines with Hybrid Search options. BM25 and Colbert Reranking
+Dense and Sparse retrieval pipelines with Hybrid Search options. BM25 search algorithm with Colbert Reranking
  
 DB connection through SQLAlchemy/ChromaDB for transcription sessions.
 
