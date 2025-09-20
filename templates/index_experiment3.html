@@ -11,9 +11,9 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#6366f1', // Indigo
-                        secondary: '#10b981', // Emerald
-                        accent: '#ec4899', // Pink
+                        primary: '#6366f1',
+                        secondary: '#10b981',
+                        accent: '#ec4899',
                     },
                     animation: {
                         marquee: 'marquee 20s linear infinite',
@@ -28,10 +28,7 @@
             }
         }
     </script>
-
     <style>
- 
-        /* Custom glassmorphism effect */
         .glass {
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(8px);
@@ -42,7 +39,6 @@
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
-        /* Slider thumb styles */
         .slider::-webkit-slider-thumb {
             appearance: none;
             height: 16px;
@@ -61,177 +57,150 @@
             border: none;
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
         }
-        /* Quote styling */
         .quote::before {
             content: '"';
         }
         .quote::after {
             content: '"';
         }
-
         .mic-checkbox {
-  display: none;
-}
-
-.mic-checkbox:checked + .mic-button {
-  transform: rotateY(180deg);
-}
-
-.button-container {
-  perspective: 500px;
-  -moz-perspective: 500px;
-  -webkit-perspective: 500px;
-}
-
-.mic-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  width: 200px;
-  border-radius: 100%;
-  transition: transform 0.4s;
-  border: 2px solid #47aca9;
-  transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d;
-  -moz-transform-style: preserve-3d;
-  position: relative;
-}
-
-.button-message,
-.mic {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  -moz-backface-visibility: hidden;
-}
-
-.button-message {
-  position: absolute;
-  width: 50px;
-  color: #333; /* Darker text color */
-  font-family: "Arimo", sans-serif;
-  font-weight: 700;
-  font-size: 25px;
-  text-align: center;
-  line-height: 20px;
-  z-index: 2;
-  transform: rotateY(0deg);
-  pointer-events: none;
-  left: 58px;
-  top: 71px;
-}
-
-.mic-button-loader {
-  position: absolute;
-  height: 202px;
-  width: 200px;
-  background-color: transparent;
-  transform: rotateY(180deg);
-  top: -61px;
-  left: -101px;
-}
-
-.mic-checkbox:checked + .mic-button > .mic > .mic-button-loader {
-  border-top: 2.5px solid #13ef95;
-  border-radius: 100%;
-  animation: borderLoader 1.3s 0.2s ease-in-out infinite;
-}
-
-.mic {
-  position: relative;
-  top: -17px;
-  border: 20px solid #47aca9;
-  height: 48px;
-  width: 0;
-  border-radius: 45px;
-  transform: rotateY(180deg);
-}
-
-.mic:after,
-.mic:before,
-.mic-base {
-  position: absolute;
-}
-
-.mic:after {
-  content: "";
-  top: 16px;
-  left: -30px;
-  height: 57px;
-  width: 50px;
-  background-color: transparent;
-  border: 5px solid #47aca9;
-  border-bottom-left-radius: 102px;
-  border-bottom-right-radius: 110px;
-  border-top: 0;
-}
-
-.mic:before {
-  content: "";
-  top: 77px;
-  left: -2px;
-  border-bottom: 18px solid #47aca9;
-  border-left: 3px solid #47aca9;
-  border-right: 3px solid #47aca9;
-}
-
-.mic-base {
-  top: 95px;
-  left: -14px;
-  border-bottom: 7px solid #47aca9;
-  border-left: 15px solid #47aca9;
-  border-right: 15px solid #47aca9;
-}
-
-@keyframes borderLoader {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(359deg);
-  }
-}
-
-#captions {
-  color: #333; /* Darker text color */
-  font-size: 24px;
-  font-family: "Inter", sans-serif;
-  margin: 10px 0;
-  text-align: center;
-  width: 80%;
-  background-color: #f1f1f1; /* Light grey background for captions */
-  padding: 10px;
-  border-radius: 10px;
-}
-
-h2 {
-  font-family: "Arimo", sans-serif;
-  font-size: 32px;
-  margin-top: 20px;
-  letter-spacing: -0.02em;
-  opacity: 1;
-  text-align: center;
-}
-
-.button-container {
-  display: flex;
-  gap: 16px;
-}
+            display: none;
+        }
+        .mic-checkbox:checked + .mic-button {
+            transform: rotateY(180deg);
+        }
+        .button-container {
+            perspective: 500px;
+            -moz-perspective: 500px;
+            -webkit-perspective: 500px;
+        }
+        .mic-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            width: 200px;
+            border-radius: 100%;
+            transition: transform 0.4s;
+            border: 2px solid #47aca9;
+            transform-style: preserve-3d;
+            -webkit-transform-style: preserve-3d;
+            -moz-transform-style: preserve-3d;
+            position: relative;
+        }
+        .button-message,
+        .mic {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            -moz-backface-visibility: hidden;
+        }
+        .button-message {
+            position: absolute;
+            width: 50px;
+            color: #333;
+            font-family: "Arimo", sans-serif;
+            font-weight: 700;
+            font-size: 25px;
+            text-align: center;
+            line-height: 20px;
+            z-index: 2;
+            transform: rotateY(0deg);
+            pointer-events: none;
+            left: 58px;
+            top: 71px;
+        }
+        .mic-button-loader {
+            position: absolute;
+            height: 202px;
+            width: 200px;
+            background-color: transparent;
+            transform: rotateY(180deg);
+            top: -61px;
+            left: -101px;
+        }
+        .mic-checkbox:checked + .mic-button > .mic > .mic-button-loader {
+            border-top: 2.5px solid #13ef95;
+            border-radius: 100%;
+            animation: borderLoader 1.3s 0.2s ease-in-out infinite;
+        }
+        .mic {
+            position: relative;
+            top: -17px;
+            border: 20px solid #47aca9;
+            height: 48px;
+            width: 0;
+            border-radius: 45px;
+            transform: rotateY(180deg);
+        }
+        .mic:after,
+        .mic:before,
+        .mic-base {
+            position: absolute;
+        }
+        .mic:after {
+            content: "";
+            top: 16px;
+            left: -30px;
+            height: 57px;
+            width: 50px;
+            background-color: transparent;
+            border: 5px solid #47aca9;
+            border-bottom-left-radius: 102px;
+            border-bottom-right-radius: 110px;
+            border-top: 0;
+        }
+        .mic:before {
+            content: "";
+            top: 77px;
+            left: -2px;
+            border-bottom: 18px solid #47aca9;
+            border-left: 3px solid #47aca9;
+            border-right: 3px solid #47aca9;
+        }
+        .mic-base {
+            top: 95px;
+            left: -14px;
+            border-bottom: 7px solid #47aca9;
+            border-left: 15px solid #47aca9;
+            border-right: 15px solid #47aca9;
+        }
+        @keyframes borderLoader {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(359deg); }
+        }
+        #captions {
+            color: #333;
+            font-size: 24px;
+            font-family: "Inter", sans-serif;
+            margin: 10px 0;
+            text-align: center;
+            width: 80%;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        h2 {
+            font-family: "Arimo", sans-serif;
+            font-size: 32px;
+            margin-top: 20px;
+            letter-spacing: -0.02em;
+            opacity: 1;
+            text-align: center;
+        }
+        .button-container {
+            display: flex;
+            gap: 16px;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col font-sans antialiased">
-
-    
-    
     <header class="glass shadow-sm border-b border-gray-100/50">
-    
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
                 <img class="navbar-logo w-16 h-16" src="{{ url_for('static', filename='alep.png') }}" alt="Logo">
             </a>
             <h1 class="text-2xl font-bold text-gray-900">QuickRagAgent</h1>
             <div class="flex items-center space-x-4">
-                
                 <span class="text-sm text-gray-700">Hello, {{ session['username'] }}</span>
                 <div id="weatherDisplay" class="glass rounded-full px-3 py-1 text-sm text-gray-700"></div>
                 <button id="themeToggle" class="group relative glass-button border border-gray-200/50 p-2 rounded-full hover:bg-white/30 transition-all duration-200" title="Toggle theme">
@@ -244,22 +213,12 @@ h2 {
             </div>
         </div>
     </header>
-    
-
     <section class="glass w-3/4 mx-auto mt-6 p-4 rounded-xl transition-all duration-300 hover:shadow-lg">
         <div class="overflow-hidden">
             <div id="stockTicker" class="animate-marquee whitespace-nowrap text-sm text-gray-700"></div>
         </div>
     </section>
-
-    <section class="glass max-w-2xl mx-auto mt-6 p-6 rounded-xl text-center transition-all duration-300 hover:shadow-lg">
-        <p id="quoteDisplay" class="text-sm md:text-base text-gray-700 italic quote"></p>
-        <button onclick="newQuote()" class="group relative glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium mt-2 transition-all duration-200">
-            New Quote
-            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Generate new quote</span>
-        </button>
-    </section>
-
+    
     <div class="container mx-auto px-4 py-8 flex flex-1">
         <aside class="w-80 pr-6 space-y-6 lg:sticky lg:top-8">
             <button id="sidebarToggle" class="lg:hidden glass-button border border-gray-200/50 p-2 rounded-full hover:bg-white/30 transition-all duration-200">
@@ -288,20 +247,13 @@ h2 {
                                     </label>
                                 </div>
                             </div>
-            
-        <div>
-                        <!-- <button onclick="startTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium flex items-center justify-center space-x-2 transition-all duration-200">
-                            <svg id="startIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <span>Start</span>
-                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Start voice transcription</span>
-                        </button> -->
-                        <button onclick="stopTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-gray-800 hover:text-gray-900 text-sm font-medium transition-all duration-200">
-                            Stop
-                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Stop transcription</span>
-                        </button>
+                            <button onclick="stopTranscription()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-gray-800 hover:text-gray-900 text-sm font-medium transition-all duration-200">
+                                Stop
+                                <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8">Stop transcription</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2 class="text-lg font-semibold mb-4">RAG Upload</h2>
                     <input type="file" id="pdfUpload" multiple accept=".pdf" class="hidden">
@@ -317,7 +269,6 @@ h2 {
                         <div id="progressBar" class="h-full bg-secondary rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                 </div>
-
                 <div class="glass rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg">
                     <button onclick="toggleAccordion('searchConfig')" class="w-full px-6 py-4 text-lg font-semibold flex justify-between items-center border-b border-gray-200/50">
                         Search Config
@@ -334,12 +285,74 @@ h2 {
                             </div>
                             <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Adjust retrieval relevance</span>
                         </div>
-                        <button onclick="updateSearchConfig()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-secondary hover:text-emerald-600 text-sm font-medium transition-all duration-200">
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Enable Hybrid Search</label>
+                            <input type="checkbox" id="hybrid_enabled" class="h-4 w-4 text-primary focus:ring-primary">
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Combine semantic and keyword search</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Semantic Weight</label>
+                            <input type="range" id="semantic_weight" min="0" max="1" step="0.01" value="0.7" class="w-full slider">
+                            <div class="flex justify-between text-xs mt-1">
+                                <span>0</span>
+                                <span id="semantic_weight_value">0.7</span>
+                                <span>1</span>
+                            </div>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Weight for semantic search</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">BM25 Weight</label>
+                            <input type="range" id="bm25_weight" min="0" max="1" step="0.01" value="0.3" class="w-full slider">
+                            <div class="flex justify-between text-xs mt-1">
+                                <span>0</span>
+                                <span id="bm25_weight_value">0.3</span>
+                                <span>1</span>
+                            </div>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Weight for keyword (BM25) search</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">BM25 k1 (Term Saturation)</label>
+                            <input type="range" id="bm25_k1" min="0.5" max="2.0" step="0.1" value="1.2" class="w-full slider">
+                            <div class="flex justify-between text-xs mt-1">
+                                <span>0.5</span>
+                                <span id="bm25_k1_value">1.2</span>
+                                <span>2.0</span>
+                            </div>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Controls term frequency impact</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">BM25 b (Length Normalization)</label>
+                            <input type="range" id="bm25_b" min="0" max="1" step="0.01" value="0.75" class="w-full slider">
+                            <div class="flex justify-between text-xs mt-1">
+                                <span>0</span>
+                                <span id="bm25_b_value">0.75</span>
+                                <span>1</span>
+                            </div>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Controls document length impact</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Enable ColBERT Reranking</label>
+                            <input type="checkbox" id="rerank_enabled" class="h-4 w-4 text-primary focus:ring-primary">
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Rerank results with ColBERT</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">Rerank Top K</label>
+                            <input type="number" id="rerank_k" min="1" value="50" class="w-full bg-gray-50/80 border border-gray-200/50 rounded-lg p-2">
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Number of documents to rerank</span>
+                        </div>
+                        <div class="group relative">
+                            <label class="block text-sm font-medium mb-1">ColBERT Model</label>
+                            <select id="colbert_model" class="w-full bg-gray-50/80 border border-gray-200/50 rounded-lg p-2">
+                                <option value="colbert-ir/colbertv2.0">ColBERTv2.0</option>
+                                <option value="colbert-ir/colbertv1">ColBERTv1</option>
+                            </select>
+                            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Select ColBERT model</span>
+                        </div>
+                        <button onclick="updateRetrievalConfig()" class="group relative w-full glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-secondary hover:text-emerald-600 text-sm font-medium transition-all duration-200">
                             Update
                             <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Apply search settings</span>
                         </button>
                     </div>
-
                     <button onclick="toggleAccordion('chunkingConfig')" class="w-full px-6 py-4 text-lg font-semibold flex justify-between items-center border-b border-gray-200/50">
                         Chunking Config
                         <svg class="w-5 h-5 transition-transform" id="chunkingArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -373,7 +386,6 @@ h2 {
                 </div>
             </div>
         </aside>
-
         <main class="flex-1 space-y-6">
             <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                 <div class="flex justify-between items-center mb-4">
@@ -384,6 +396,7 @@ h2 {
                             Refresh
                             <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Reload document list</span>
                         </button>
+                    </div>
                 </div>
                 <div class="overflow-auto max-h-96">
                     <table class="w-full text-sm">
@@ -399,23 +412,19 @@ h2 {
                     </table>
                 </div>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2 class="text-lg font-semibold mb-4">Transcript</h2>
                     <p id="transcript" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No transcript available yet.</p>
                 </div>
-
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2 class="text-lg font-semibold mb-4">LLM Response</h2>
                     <p id="response" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No response yet.</p>
                 </div>
-
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2 class="text-lg font-semibold mb-4">Last Retrieval</h2>
                     <div id="retrieval-info" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No data</div>
                 </div>
-
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2 class="text-lg font-semibold mb-4">Chunking Info</h2>
                     <div id="chunking-info" class="bg-gray-50/50 p-4 rounded-lg min-h-[120px] text-sm overflow-auto">No data</div>
@@ -423,11 +432,16 @@ h2 {
             </div>
         </main>
     </div>
-
     <footer class="glass border-t border-gray-100/50 py-4 text-center text-sm text-gray-600">
+        <section class="glass max-w-2xl mx-auto mt-6 p-6 rounded-xl text-center transition-all duration-300 hover:shadow-lg">
+        <p id="quoteDisplay" class="text-sm md:text-base text-gray-700 italic quote"></p>
+        <button onclick="newQuote()" class="group relative glass-button border border-gray-200/50 px-3 py-1 rounded-full hover:bg-white/30 text-primary hover:text-indigo-400 text-sm font-medium mt-2 transition-all duration-200">
+            New Quote
+            <span class="absolute invisible group-hover:visible bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2">Generate new quote</span>
+        </button>
+    </section>
         © 2025 QuickRagAgent. All rights reserved.
     </footer>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Theme toggle
@@ -476,7 +490,7 @@ h2 {
                     });
             }
             fetchStocks();
-            setInterval(fetchStocks, 60000); // Update every minute
+            setInterval(fetchStocks, 60000);
 
             // Quote
             function newQuote() {
@@ -514,7 +528,7 @@ h2 {
                     .then(response => response.json())
                     .then(data => {
                         document.getElementById('transcriberStatus').textContent = 'Idle';
-                        document.getElementById('startIcon').classList.remove('hidden');
+                        document.getElementById('startIcon')?.classList.remove('hidden');
                         stopPolling();
                     })
                     .catch(error => alert('Error stopping transcription: ' + error));
@@ -574,17 +588,17 @@ h2 {
             }
 
             // Documents
-            let allDocuments = []
+            let allDocuments = [];
             function listDocuments() {
                 fetch('/get_documents')
                     .then(response => response.json())
                     .then(documents => {
-                        allDocuments = documents // Cache all documents
+                        allDocuments = documents;
                         const searchQuery = document.getElementById('documentSearch').value.toLowerCase();
                         const filteredDocuments = searchQuery
                             ? documents.filter(doc =>
-                            doc.filename.toLowerCase().includes(searchQuery) ||
-                            doc.summary.toLowerCase().includes(searchQuery)
+                                doc.filename.toLowerCase().includes(searchQuery) ||
+                                doc.summary.toLowerCase().includes(searchQuery)
                             )
                             : documents;
                         const tbody = document.getElementById('documentsBody');
@@ -619,7 +633,7 @@ h2 {
                         .then(response => response.json())
                         .then(data => {
                             alert(data.status);
-                            listDocuments(); // Refresh table after deletion
+                            listDocuments();
                         })
                         .catch(error => alert('Error deleting document: ' + error));
                 }
@@ -643,19 +657,86 @@ h2 {
                 similarityValue.textContent = similaritySlider.value;
             });
 
-            function updateSearchConfig() {
+            const semanticWeightSlider = document.getElementById('semantic_weight');
+            const semanticWeightValue = document.getElementById('semantic_weight_value');
+            const bm25WeightSlider = document.getElementById('bm25_weight');
+            const bm25WeightValue = document.getElementById('bm25_weight_value');
+
+            // Synchronize weight sliders to sum to 1
+            semanticWeightSlider.addEventListener('input', () => {
+                semanticWeightValue.textContent = semanticWeightSlider.value;
+                bm25WeightSlider.value = (1 - parseFloat(semanticWeightSlider.value)).toFixed(2);
+                bm25WeightValue.textContent = bm25WeightSlider.value;
+            });
+            bm25WeightSlider.addEventListener('input', () => {
+                bm25WeightValue.textContent = bm25WeightSlider.value;
+                semanticWeightSlider.value = (1 - parseFloat(bm25WeightSlider.value)).toFixed(2);
+                semanticWeightValue.textContent = semanticWeightSlider.value;
+            });
+
+            const bm25K1Slider = document.getElementById('bm25_k1');
+            const bm25K1Value = document.getElementById('bm25_k1_value');
+            bm25K1Slider.addEventListener('input', () => {
+                bm25K1Value.textContent = bm25K1Slider.value;
+            });
+
+            const bm25BSlider = document.getElementById('bm25_b');
+            const bm25BValue = document.getElementById('bm25_b_value');
+            bm25BSlider.addEventListener('input', () => {
+                bm25BValue.textContent = bm25BSlider.value;
+            });
+
+            function updateRetrievalConfig() {
                 const data = {
-                    similarity_threshold: similaritySlider.value
+                    hybrid_enabled: document.getElementById('hybrid_enabled').checked,
+                    semantic_weight: parseFloat(semanticWeightSlider.value),
+                    bm25_weight: parseFloat(bm25WeightSlider.value),
+                    bm25_k1: parseFloat(bm25K1Slider.value),
+                    bm25_b: parseFloat(bm25BSlider.value),
+                    rerank_enabled: document.getElementById('rerank_enabled').checked,
+                    rerank_k: parseInt(document.getElementById('rerank_k').value),
+                    colbert_model: document.getElementById('colbert_model').value
                 };
-                fetch('/set_chunking_config', {
+                // Client-side validation
+                if (data.hybrid_enabled && Math.abs(data.semantic_weight + data.bm25_weight - 1.0) > 0.01) {
+                    alert('Semantic and BM25 weights must sum to 1');
+                    return;
+                }
+                if (data.rerank_k < 1) {
+                    alert('Rerank Top K must be at least 1');
+                    return;
+                }
+                fetch('/set_retrieval_config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 })
                     .then(response => response.json())
                     .then(result => alert(result.status))
-                    .catch(error => alert('Error updating search config: ' + error));
+                    .catch(error => alert('Error updating retrieval config: ' + error));
             }
+
+            function fetchRetrievalConfig() {
+                fetch('/get_retrieval_config')
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('hybrid_enabled').checked = data.hybrid_enabled;
+                        semanticWeightSlider.value = data.semantic_weight;
+                        semanticWeightValue.textContent = data.semantic_weight;
+                        bm25WeightSlider.value = data.bm25_weight;
+                        bm25WeightValue.textContent = data.bm25_weight;
+                        bm25K1Slider.value = data.bm25_k1;
+                        bm25K1Value.textContent = data.bm25_k1;
+                        bm25BSlider.value = data.bm25_b;
+                        bm25BValue.textContent = data.bm25_b;
+                        document.getElementById('rerank_enabled').checked = data.rerank_enabled;
+                        document.getElementById('rerank_k').value = data.rerank_k;
+                        document.getElementById('colbert_model').value = data.colbert_model;
+                        similaritySlider.value = data.similarity_threshold;
+                        similarityValue.textContent = data.similarity_threshold;
+                    });
+            }
+            fetchRetrievalConfig();
 
             // Chunking Config
             function fetchChunkingConfig() {
@@ -697,7 +778,6 @@ h2 {
                     .then(data => {
                         document.getElementById('retrieval-info').textContent = JSON.stringify(data, null, 2);
                     });
-
                 fetch('/get_chunking_info')
                     .then(response => response.json())
                     .then(data => {
@@ -722,7 +802,7 @@ h2 {
             window.deleteDocument = deleteDocument;
             window.newQuote = newQuote;
             window.toggleAccordion = toggleAccordion;
-            window.updateSearchConfig = updateSearchConfig;
+            window.updateRetrievalConfig = updateRetrievalConfig;
             window.updateChunkingConfig = updateChunkingConfig;
         });
     </script>
