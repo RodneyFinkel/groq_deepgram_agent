@@ -3,11 +3,15 @@ from chromadb import Client
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer # For better embeddings
 import torch
-from transformers import BertTokenizer, BertModel
-from sklearn.metrics.pairwise import cosine_similarity
+# from transformers import BertTokenizer, BertModel
+#from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import time
 import logging
+
+# New Imports for Hybrid Search
+from rank_bm25 import BM25Okapi
+from ragatouille import RAGPretrainedModel  # For ColBERT
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -18,10 +22,6 @@ class DocumentContextManager:
         print("Chroma Initialized")
         self.collection = self.client.get_or_create_collection("documents", metadata={"hnsw:space": "cosine"}) # Ensure cosine similarity is used
         
-        # Load pre-trained model and tokenizer
-        # self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        # self.model = BertModel.from_pretrained('bert-base-uncased')
-        # print("Bert initialized")
         self.model = SentenceTransformer('all-MiniLM-L6-v2') # New model
         print("SentenceTransformer Initialized")
         
@@ -31,34 +31,43 @@ class DocumentContextManager:
         
         # CHANGE: Initialize last_raw_results to store raw retrieval data for debugging
         self.last_raw_results = []
-    
+        self.retrieval_config = {
+            'hybrid_enabled': False,  # Toggle hybrid search
+            'semantic_weight': 0.7,   # Weight for semantic score in fusion (0-1)
+            'bm25_weight': 0.3,       # Weight for BM25 score in fusion (0-1)
+            'bm25_k1': 1.2,           # BM25 term saturation
+            'bm25_b': 0.75,           # BM25 length normalization
+            'rerank_enabled': False,  # Toggle ColBERT reranking
+            'rerank_k': 50,           # Initial retrieve this many for reranking, then take top_k
+            'colbert_model': 'colbert-ir/colbertv2.0'  # Pretrained ColBERT model
+        }    
+        
+        # New: Preload ColBERT if enabled (lazy load on first use)
+        self.colbert_reranker = None
+        
+        # New: BM25 index (built on add document)
+        self.bm25_index = None
+        self.documents_for_bm25 = [] # list of tokenized docs for BM25
+        
+        
+
     def set_similarity_threshold(self, threshold):  # NEW: Set the similarity threshold for document retrieval
         if not isinstance(threshold, (int, float)) or threshold < 0 or threshold > 1:
             raise ValueError("Similarity threshold must be a number between 0 and 1")
         self.similarity_threshold = float(threshold)
         logging.info(f"Updated similarity threshold to: {self.similarity_threshold}")
         
-    # OLD: using BERT 
-    # def _embed_text(self, text):
-    #     # Pre-tokenize without special tokens to control length precisely
-    #     tokens = self.tokenizer.encode(text, add_special_tokens=False)
-    #     if len(tokens) > 510:  # Leave room for [CLS] + [SEP] (~2 tokens)
-    #         print(f"Warning: Input text truncated from {len(tokens)} to 510 tokens for BERT limit.")
-    #         tokens = tokens[:510]
+    # New: Setters and getters for retrieval config
+    def set_retrieval_config(self, config):
+        self.retrieval_config.update(config)
+        logging.info(f"Updated retrieval config: {self.retrieval_config}")
+        if self.retrieval_config['reranked_enabled'] and not self.colbert_reranker:
+            self.colbert_reranker = RAGPretrainedModel.from_pretrained(self.retrieval_config['colbert_model'])
+            logging.info(f"Loaded ColBERT model: {self.retrieval_config['colbert model']}")
+            
+    def get_retrieval_config(self):
+        return self.retrieval_config
         
-    #     # Re-encode with special tokens and padding
-    #     inputs = self.tokenizer.decode(tokens, skip_special_tokens=True)  # Back to text, clean (NEW)
-    #     inputs = self.tokenizer(inputs, return_tensors='pt', truncation=True, padding=True, max_length=512)
-        
-    #     print(f"Input token count (with special): {inputs['input_ids'].shape[1]}")  # Debug: Should be <=512
-    #     with torch.no_grad():
-    #         outputs = self.model(**inputs)
-    #     # Mean pooling to get a single vector for the document
-    #     embeddings = outputs.last_hidden_state.mean(dim=1)
-    #     if embeddings is None or embeddings.shape[0] == 0:
-    #         raise ValueError("Emebeddings generation failed for text.")
-    #     print(f"Generated Embedding Shape: {embeddings.shape}")
-    #     return embeddings.cpu().numpy().flatten()
     
     # NEW: using Sentence Transformer
     def _embed_text(self, text):
@@ -98,6 +107,12 @@ class DocumentContextManager:
             metadatas=[metadata],
             documents=[clean_text]
         )
+        
+        # New: Update BM25 index
+        tokenized_doc = clean_text.lower().split() # simple tokenization for BM25
+        self.documents_for_bm25.append(tokenized_doc)
+        self.bm25_index =BM25Okapi(self.documents_for_bm25) # rebuild index (efficient for small corpora, optimize for large)
+        logging.info(f"Updated BM25 index with new document {doc_id}")
 
     
     #  Using Chromadb
@@ -130,6 +145,39 @@ class DocumentContextManager:
                 "similarity": 1 - distances[i]
             } for i in range(len(ids))
         ]
+        
+        # New: Hybrid Search if enabled
+        hybrid_scores = {}
+        if self.retrieval_config['hybrid_enabled'] and self.bm25_index:
+            tokenized_query = query.lower().split()
+            bm25_scores = self.bm25_index.get_scores(tokenized_query)
+            for i, doc_id in enumerate(ids):
+                semantic_sim = 1 - distances[i]
+                bm25_score = bm25_scores[i] if i < len(bm25_scores) else 0 # Align with retrieved docs
+                fused_score = (
+                    self.retrieval_config['semantic_weight'] * semantic_sim +
+                    self.retrieval_config['bm25_weight'] * bm25_score
+                )
+                hybrid_scores[doc_id] = fused_score
+                
+                # sort by fused top score and take top k
+                sorted_docs = sorted(hybrid_scores.items(), key=lambda x:[1], reverse=True)[:top_k]
+                ids = [doc[0] for doc in sorted_docs]
+                # Refetch docs, metas for sorted ids (inneficient, will optimize later)
+                refetched = self.collection.get(ids=ids, include=['documents', 'metadatas'])
+                documents = refetched['documents']
+                metadatas = refetched['metadatas']
+                
+        # New: ColBERT reranking if enabled
+        if self.retrieval_config['rerank_enabled'] and self.colbert_reranker:
+            # Prepare docs for reranking
+            rerank_docs = documents[:self.retrieval_config['rerank_k']]
+            reranked = self.colbert_reranker.rerank(query, rerank_docs, k=top_k)
+            # Update with reranked order/scores
+            documents = [doc['content'] for doc in reranked]
+            metadatas = [metadatas[rerank_docs.index(doc['content'])] for doc in reranked]
+                            
+                       
         
         # NEW: Similarity threshold filtering
         similar_docs = []

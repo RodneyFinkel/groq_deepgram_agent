@@ -55,26 +55,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Pre-load tokenizer globally
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW
-# tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased') # OLD
 
-# Utility Function for chunking text
-# def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST):
-#     #words = text.split()
-#     global tokenizer
-#     tokens = tokenizer.encode(text, add_special_tokens=False)
-#     chunks = []
-#     i = 0
-#     while i < len(tokens):
-#         chunk_tokens = tokens[i:i+chunk_size]
-#         # Enforce chunk size limit
-#         if len(chunk_tokens) > 510: # Align with BERT limit 
-#             chunk_tokens = chunk_tokens[:510]
-#         chunk_text_decoded = tokenizer.decode(chunk_tokens, skip_special_tokens=True)
-#         chunks.append(chunk_text_decoded)
-#         # chunk = words[i:i+chunk_size]
-#         # chunks.append(" ".join(chunk))
-#         i += chunk_size - overlap
-#     return chunks
 
 # NEW: Utility Function for chunking text with sentence transformer tokenizer (token-aware)
 def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST):
@@ -138,8 +119,6 @@ def start_transcription():
         transcription_thread.start()
         logging.info("Transcription thread started")
         return jsonify({"status": "Transcription started"})
-    #logging.warning("Transcription already running")
-    #return jsonify({"status": "Transcription already running"})
     else:
         return jsonify({"status": "Transcription already running"})
 
@@ -170,39 +149,7 @@ def get_data():
         "llm_response": llm_response
     })
 
-# @app.route('/start_transcription', methods=['POST'])
-# def start_transcription():
-#     global transcription_thread
-#     if not conversation_manager.transcription_active:
-#         if not check_microphone():
-#             return jsonify({"status": "No microphone available"}), 500
-#         transcription_thread = threading.Thread(target=conversation_manager.run_transcription)
-#         transcription_thread.daemon = True
-#         transcription_thread.start()
-#         logging.info("Transcription thread started")
-#         return jsonify({"status": "Transcription started"})
-#     return jsonify({"status": "Transcription already running"})
 
-# @app.route('/stop_transcription', methods=['POST'])
-# def stop_transcription():
-#     global transcription_thread
-#     if conversation_manager.transcription_active:
-#         conversation_manager.stop_transcription()
-#         transcription_thread = None
-#         logging.info('Transcription thread stopped')
-#         return jsonify({"status": "Transcription stopped"})
-#     return jsonify({"status": "No transcription running"})
-
-# @app.route('/get_data')
-# def get_data():
-#     if not conversation_manager.transcription_active:
-#         return jsonify({"status": "Transcription inactive", "transcript": "", "llm_response": ""})
-#     return jsonify({
-#         "status": "Active",
-#         "transcript": conversation_manager.session_state["transcript"],
-#         "llm_response": conversation_manager.session_state["response"]
-#     })
-    
 @app.route('/get_chunking_config', methods=['GET'])
 def get_chunking_config():
     return jsonify({
@@ -224,6 +171,50 @@ def set_chunking_config():
     similarity_threshold = float(data.get("similarity_threshold", context_manager.similarity_threshold))
     context_manager.set_similarity_threshold(similarity_threshold)
     return jsonify({"status": "Chunking config updated"})
+
+@app.route('/get_retrieval_config, methods=[GET]')
+def get_retrieval_config():
+    try:
+        config = context_manager.get_retrieval_config()
+        return jsonify(config)
+    except Exception as e:
+        logging.error(f"Error fetching retrieval config: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/set_retrieval_config')
+def set_retrieval_config():
+    try:
+        data = request.json
+        # Validate inputs
+        config = {
+            'hybrid_enabled': bool(data.get('hybrid_enabled', context_manager.get_retrieval_config()['hybrid_enabled'])),
+            'semantic_weight': float(data.get('semantic_weight', context_manager.get_retrieval_config()['semantic_weight'])),
+            'bm25_weight': float(data.get('bm25_weight', context_manager.get_retrieval_config()['bm25_weight'])),
+            'bm25_k1': float(data.get('bm25_k1', context_manager.get_retrieval_config()['bm25_k1'])),
+            'bm25_b': float(data.get('bm25_b', context_manager.get_retrieval_config()['bm25_b'])),
+            'rerank_enabled': bool(data.get('rerank_enabled', context_manager.get_retrieval_config()['rerank_enabled'])),
+            'rerank_k': int(data.get('rerank_k', context_manager.get_retrieval_config()['rerank_k'])),
+            'colbert_model': str(data.get('colbert_model', context_manager.get_retrieval_config()['colbert_model']))
+        }
+        
+        # Validate weights sum to 1 (if hybrid enabled)
+        if config['hybrid_enabled'] and abs(config['semantic_weight'] + config['bm25_weight'] - 1.0) > 0.01:
+            return jsonify({"status": "Error: semantic_weight and bm25_weight must sum to 1"}), 400
+        # Validate ranges
+        if not (0 <= config['semantic_weight'] <= 1 and 0 <= config['bm25_weight'] <= 1):
+            return jsonify({"status": "Error: Weights must be between 0 and 1"}), 400
+        if not (0.5 <= config['bm25_k1'] <= 2.0 and 0.0 <= config['bm25_b'] <= 1.0):
+            return jsonify({"status": "Error: BM25 k1 must be 0.5-2.0, b must be 0.0-1.0"}), 400
+        if config['rerank_k'] < 1:
+            return jsonify({"status": "Error: rerank_k must be at least 1"}), 400
+        context_manager.set_retrieval_config(config)
+        logging.info("Retrieval config updated successfully")
+        return jsonify({"status": "Retrieval config updated"})
+    except Exception as e:
+        logging.error(f"Error updating retrieval config: {str(e)}")
+        return jsonify({"status": "Error updating retrieval config", "error": str(e)}), 500
+        
+
 
 @app.route('/get_chunking_info', methods=['GET'])
 def get_chunking_info():
@@ -344,6 +335,7 @@ def get_documents():
         logging.error(f"Error fetching documents: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+# Exposed but not used
 @app.route('/query', methods=['POST'])
 def query():
     query_text = request.json.get('query')
