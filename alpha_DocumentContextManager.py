@@ -2,9 +2,6 @@
 from chromadb import Client
 from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer # For better embeddings
-import torch
-# from transformers import BertTokenizer, BertModel
-#from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import time
 import logging
@@ -32,12 +29,12 @@ class DocumentContextManager:
         # CHANGE: Initialize last_raw_results to store raw retrieval data for debugging
         self.last_raw_results = []
         self.retrieval_config = {
-            'hybrid_enabled': False,  # Toggle hybrid search
+            'hybrid_enabled': True,  # Toggle hybrid search
             'semantic_weight': 0.7,   # Weight for semantic score in fusion (0-1)
             'bm25_weight': 0.3,       # Weight for BM25 score in fusion (0-1)
             'bm25_k1': 1.2,           # BM25 term saturation
             'bm25_b': 0.75,           # BM25 length normalization
-            'rerank_enabled': False,  # Toggle ColBERT reranking
+            'rerank_enabled': True,  # Toggle ColBERT reranking
             'rerank_k': 50,           # Initial retrieve this many for reranking, then take top_k
             'colbert_model': 'colbert-ir/colbertv2.0'  # Pretrained ColBERT model
         }    
@@ -61,9 +58,9 @@ class DocumentContextManager:
     def set_retrieval_config(self, config):
         self.retrieval_config.update(config)
         logging.info(f"Updated retrieval config: {self.retrieval_config}")
-        if self.retrieval_config['reranked_enabled'] and not self.colbert_reranker:
+        if self.retrieval_config['rerank_enabled'] and not self.colbert_reranker:
             self.colbert_reranker = RAGPretrainedModel.from_pretrained(self.retrieval_config['colbert_model'])
-            logging.info(f"Loaded ColBERT model: {self.retrieval_config['colbert model']}")
+            logging.info(f"Loaded ColBERT model: {self.retrieval_config['colbert_model']}")
             
     def get_retrieval_config(self):
         return self.retrieval_config

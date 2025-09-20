@@ -93,7 +93,7 @@ def signin():
 def dashboard():
     if 'email' not in session:
         return redirect(url_for('signin'))
-    return render_template('index_experiment3.html')
+    return render_template('index_experiment4.html')
 
 @app.route('/signout')
 def signout():
@@ -181,11 +181,17 @@ def get_retrieval_config():
         logging.error(f"Error fetching retrieval config: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/set_retrieval_config')
+@app.route('/set_retrieval_config', methods=['POST'])
 def set_retrieval_config():
     try:
+        logging.info('Received request to /set-retrieval_config')
         data = request.json
-        # Validate inputs
+        logging.info(f"Request payload: {data}")
+        if not data:
+            logging.error('No JSON payload provided')
+            return jsonify*{"status": " Error: No JSON payload provided"}, 400
+        
+        # Initialize config with defaults
         config = {
             'hybrid_enabled': bool(data.get('hybrid_enabled', context_manager.get_retrieval_config()['hybrid_enabled'])),
             'semantic_weight': float(data.get('semantic_weight', context_manager.get_retrieval_config()['semantic_weight'])),
@@ -210,6 +216,9 @@ def set_retrieval_config():
         context_manager.set_retrieval_config(config)
         logging.info("Retrieval config updated successfully")
         return jsonify({"status": "Retrieval config updated"})
+    except ValueError as ve:
+        logging.error(f"Unexpected error in set_retrieval_config: {str(ve)}")
+        return jsonify({"status": "Error: Invalid input values", "error": str(ve)}), 400
     except Exception as e:
         logging.error(f"Error updating retrieval config: {str(e)}")
         return jsonify({"status": "Error updating retrieval config", "error": str(e)}), 500
