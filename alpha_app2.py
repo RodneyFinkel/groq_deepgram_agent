@@ -76,18 +76,41 @@ def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
 def index():
     return render_template('signin.html')
 
+# @app.route('/signin', methods=['GET', 'POST'])
+# def signin():
+#     if request.method == 'POST':
+#         email = request.form['email']
+#         username = request.form['username'] 
+#         session['email'] = email  # Set session
+#         session['username'] = username 
+#         executor.submit(send_welcome_email, email)  # Send email in background
+#         # send_welcome_email(email)
+#         flash('Welcome email sent successfully!', 'success')
+#         return redirect(url_for('dashboard'))
+#     return render_template('signin.html')
+
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
     if request.method == 'POST':
-        email = request.form['email']
-        username = request.form['username'] 
-        session['email'] = email  # Set session
-        session['username'] = username 
-        executor.submit(send_welcome_email, email)  # Send email in background
-        # send_welcome_email(email)
-        flash('Welcome email sent successfully!', 'success')
-        return redirect(url_for('dashboard'))
-    return render_template('signin.html')
+        try:
+            data = request.get_json()
+            if not data:
+                logging.error("No JSON payload provided in /signin")
+                return jsonify({"error": "No JSON payload provided"}), 400
+            email = data.get('email')
+            username = data.get('username')
+            if not email or not username:
+                logging.error("Missing email or username in /signin payload")
+                return jsonify({"error": "Missing email or username"}), 400
+            session['email'] = email
+            session['username'] = username
+            executor.submit(send_welcome_email, email)
+            logging.info(f"Signed in user: {username} ({email})")
+            return jsonify({"status": "Welcome email sent successfully!"}), 200
+        except Exception as e:
+            logging.error(f"Error in /signin: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+    return render_template('signin2.html')
 
 @app.route('/dashboard')
 def dashboard():

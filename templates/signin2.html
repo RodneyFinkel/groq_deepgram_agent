@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickRagAgent Sign In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" />
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#10b981',
+                        accent: '#ec4899',
+                        glass: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    animation: {
+                        pulse: 'pulse 1.5s ease-in-out infinite',
+                        fadeIn: 'fadeIn 0.3s ease-in',
+                    },
+                    keyframes: {
+                        pulse: {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.5 },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: 0, transform: 'translateY(10px)' },
+                            '100%': { opacity: 1, transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .glass-button {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .tooltip {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .group:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        h2 {
+            font-family: "Arimo", sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            color: #1f2937;
+            letter-spacing: -0.02em;
+        }
+        label {
+            font-family: "Inter", sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+        }
+        input {
+            font-family: "Inter", sans-serif;
+        }
+        .spinner {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #6366f1;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col font-sans antialiased">
+    <header class="glass shadow-md border-b border-gray-100/20 fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href='https://github.com/RodneyFinkel' target="_blank" rel="noopener noreferrer">
+                <img class="navbar-logo w-16 h-16 rounded-full hover:opacity-90 transition-opacity" src="{{ url_for('static', filename='alep.png') }}" alt="Logo">
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">QuickRagAgent</h1>
+            <div class="flex items-center space-x-4">
+                <button id="themeToggle" class="group relative glass-button border border-gray-200/20 p-2 rounded-full hover:bg-white/30 dark:hover:bg-gray-700/30 transition-all duration-200" title="Toggle theme">
+                    <svg id="lightIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <svg id="darkIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                    <span class="tooltip absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -top-10 left-1/2 transform -translate-x-1/2">Toggle theme</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <main class="flex-1 flex items-center justify-center pt-24">
+        <div class="glass max-w-md w-full mx-auto p-6 rounded-xl transition-all duration-300 hover:shadow-lg">
+            <h2 class="text-center mb-6">Sign In</h2>
+            <form id="signinForm" class="space-y-4">
+                <div class="group relative">
+                    <label for="email" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Email</label>
+                    <input type="email" id="email" name="email" required class="w-full bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/20 rounded-lg p-2 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-primary focus:outline-none transition-all duration-200">
+                    <span class="tooltip absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -top-10 left-1/2 transform -translate-x-1/2">Enter your email address</span>
+                </div>
+                <div class="group relative">
+                    <label for="username" class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Username</label>
+                    <input type="text" id="username" name="username" required class="w-full bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/20 rounded-lg p-2 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-primary focus:outline-none transition-all duration-200">
+                    <span class="tooltip absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -top-10 left-1/2 transform -translate-x-1/2">Enter your username</span>
+                </div>
+                <button type="submit" class="group relative w-full glass-button border border-gray-200/20 px-3 py-2 rounded-full hover:bg-white/30 dark:hover:bg-gray-700/30 text-primary hover:text-indigo-400 text-sm font-medium transition-all duration-200 flex items-center justify-center">
+                    Sign In
+                    <span id="signinSpinner" class="spinner ml-2"></span>
+                    <span class="tooltip absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -top-10 left-1/2 transform -translate-x-1/2">Sign in to your account</span>
+                </button>
+            </form>
+            <p class="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
+                Powered by <span class="font-semibold">Deepgram</span> and <span class="font-semibold">Groq LPU's</span>
+            </p>
+        </div>
+    </main>
+    <footer class="glass border-t border-gray-100/20 py-4 text-center text-sm text-gray-600 dark:text-gray-400">
+        © 2025 QuickRagAgent. All rights reserved.
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Theme toggle
+            const themeToggle = document.getElementById('themeToggle');
+            const lightIcon = document.getElementById('lightIcon');
+            const darkIcon = document.getElementById('darkIcon');
+            themeToggle.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                lightIcon.classList.toggle('hidden');
+                darkIcon.classList.toggle('hidden');
+            });
+
+            // Sign-in form submission
+            const signinForm = document.getElementById('signinForm');
+            const signinButton = signinForm.querySelector('button[type="submit"]');
+            const signinSpinner = document.getElementById('signinSpinner');
+
+            signinForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                signinButton.disabled = true;
+                signinSpinner.style.display = 'inline-block';
+
+                const formData = new FormData(signinForm);
+                const data = {
+                    email: formData.get('email'),
+                    username: formData.get('username')
+                };
+
+                fetch('/signin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw new Error(err.error || 'Sign-in failed'); });
+                        }
+                        return response.json();
+                    })
+                    .then(result => {
+                        Toastify({
+                            text: result.status || 'Signed in successfully',
+                            duration: 3000,
+                            style: { background: '#10b981' }
+                        }).showToast();
+                        window.location.href = '/dashboard';
+                    })
+                    .catch(error => {
+                        Toastify({
+                            text: 'Error signing in: ' + error.message,
+                            duration: 3000,
+                            style: { background: '#ef4444' }
+                        }).showToast();
+                        signinButton.disabled = false;
+                        signinSpinner.style.display = 'none';
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
