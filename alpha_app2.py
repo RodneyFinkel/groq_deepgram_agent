@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 # NEW
 import logging
+from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer # NEW
 import re # New
 from sentence_transformers.util import cos_sim #New
@@ -57,7 +58,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Pre-load tokenizer globally
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW
-
+sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # NEW: Utility Function for chunking text with sentence transformer tokenizer (token-aware)
 def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST, chunking_type=CHUNKING_TYPE, similarity_threshold=SEMANTIC_SIMILARITY_THRESHOLD):
@@ -85,6 +86,7 @@ def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST,
         
         # Step 2: Embed Sentences
         embeddings = tokenizer.model.encode(sentences, convert_to_tensor=False) # Returns NP Arrray
+        embeddings = sentence_model.encode(sentences, convert_to_tensor=False) # # Use sentence_model, not tokenizer
         
         # Step 3: Group into chunks based on similarity
         chunks = []
