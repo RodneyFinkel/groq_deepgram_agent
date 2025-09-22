@@ -7,7 +7,7 @@ import yfinance as yf
 import PyPDF2 
 from alpha_quickagent import ConversationManager, check_microphone
 from alpha_DocumentContextManager import DocumentContextManager
-from chunk_config import CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
+from chunk_config import CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM, SEMANTIC_SIMILARITY_THRESHOLD, CHUNKING_TYPE
 import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -15,6 +15,8 @@ import time
 # NEW
 import logging
 from transformers import AutoTokenizer # NEW
+import re # New
+from sentence_transformers.util import cos_sim #New
 
 # NEW: Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -58,23 +60,56 @@ tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v
 
 
 # NEW: Utility Function for chunking text with sentence transformer tokenizer (token-aware)
-def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST):
-    tokens = tokenizer.encode(text, add_special_tokens=False) # NEW: change while parameter to len(tokens) from len(text)
-    chunks = []
-    i = 0
-    while i < len(tokens):
-        chunk_tokens = tokens[i:i + chunk_size]
-        chunk_text = tokenizer.decode(chunk_tokens, skip_special_tokens=True)
-        chunks.append(chunk_text)
-        i += chunk_size - overlap
-    logging.info(f"Created {len(chunks)} chunks with size {chunk_size} and overlap {overlap}")
-    return chunks
-
-
+def chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST, chunking_type=CHUNKING_TYPE, similarity_threshold=SEMANTIC_SIMILARITY_THRESHOLD):
+    
+    if chunking_type == 'fixed':
+        tokens = tokenizer.encode(text, add_special_tokens=False) # NEW: change while parameter to len(tokens) from len(text)
+        chunks = []
+        i = 0
+        while i < len(tokens):
+            chunk_tokens = tokens[i:i + chunk_size]
+            chunk_text = tokenizer.decode(chunk_tokens, skip_special_tokens=True)
+            chunks.append(chunk_text)
+            i += chunk_size - overlap
+        logging.info(f"Created {len(chunks)} chunks with size {chunk_size} and overlap {overlap}")
+        return chunks
+    
+    elif chunking_type == 'semantic':
+        # Semantic chunking implementation
+        # Step 1: Split into sentences using regex (handles .!if followed by space)
+        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s', text)
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        if not sentences:
+            return []
+        
+        # Step 2: Embed Sentences
+        embeddings = tokenizer.model.encode(sentences, convert_to_tensor=False) # Returns NP Arrray
+        
+        # Step 3: Group into chunks based on similarity
+        chunks = []
+        current_chunk = [sentences[0]]
+        for i in range(1, len(sentences)):
+            # Compute cosine sim between current and previous sentence embeddings
+            sim = cos_sim(embeddings[i:i+1], embeddings[i-1:i])[0][0]  # Scalar value
+            if sim >= similarity_threshold:
+                current_chunk.append(sentences[i])
+            else:
+                chunks.append(" ".join(current_chunk))
+                current_chunk = [sentences[i]]
+        if current_chunk:
+            chunks.append(" ".join(current_chunk))
+        
+        logging.info(f"Created {len(chunks)} semantic chunks with similarity threshold {similarity_threshold}")
+        return chunks
+    
+    else:
+        raise ValueError(f"Uknown chunking_type: {chunking_type}")
+            
 
 @app.route('/')
 def index():
-    return render_template('signin.html')
+    return render_template('signin2.html')
 
 # @app.route('/signin', methods=['GET', 'POST'])
 # def signin():
@@ -180,12 +215,14 @@ def get_chunking_config():
         "chunk_overlap_ingest": CHUNK_OVERLAP_INGEST,
         "chunk_size_llm": CHUNK_SIZE_LLM,
         "chunk_overlap_llm": CHUNK_OVERLAP_LLM,
-        "similarity_threshold": context_manager.similarity_threshold
+        "similarity_threshold": context_manager.similarity_threshold,
+        "chunking_type": CHUNKING_TYPE,
+        "semantic_threshold": SEMANTIC_SIMILARITY_THRESHOLD
     })
 
 @app.route('/set_chunking_config', methods=['POST'])
 def set_chunking_config():
-    global CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
+    global CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM, CHUNKING_TYPE, SEMANTIC_SIMILARITY_THRESHOLD
     data = request.json
     CHUNK_SIZE_INGEST = int(data.get("chunk_size_ingest", CHUNK_SIZE_INGEST))
     CHUNK_OVERLAP_INGEST = int(data.get("chunk_overlap_ingest", CHUNK_OVERLAP_INGEST))
@@ -193,6 +230,8 @@ def set_chunking_config():
     CHUNK_OVERLAP_LLM = int(data.get("chunk_overlap_llm", CHUNK_OVERLAP_LLM))
     similarity_threshold = float(data.get("similarity_threshold", context_manager.similarity_threshold))
     context_manager.set_similarity_threshold(similarity_threshold)
+    CHUNKING_TYPE = data.get("chunking_type", CHUNKING_TYPE)
+    SEMANTIC_SIMILARITY_THRESHOLD = float(data.get("semantic_threshold", SEMANTIC_SIMILARITY_THRESHOLD))
     return jsonify({"status": "Chunking config updated"})
 
 @app.route('/get_retrieval_config', methods=['GET'])
@@ -283,7 +322,7 @@ def upload_pdf():
                 # Extract text from PDF
                 text = extract_text_from_pdf(filepath)
                 # Chunk text
-                chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST)
+                chunks = chunk_text(text, chunk_size=CHUNK_SIZE_INGEST, overlap=CHUNK_OVERLAP_INGEST, chunking_type=CHUNKING_TYPE, similarity_threshold=SEMANTIC_SIMILARITY_THRESHOLD)
                 # Store each chunk in ChromaDB
                 for idx, chunk in enumerate(chunks):
                     doc_id = f"{file.filename}_chunk_{idx}"

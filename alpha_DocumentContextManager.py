@@ -139,7 +139,9 @@ class DocumentContextManager:
             {
                 "doc_id": ids[i],
                 "distance": distances[i],
-                "similarity": 1 - distances[i]
+                "similarity": 1 - distances[i],
+                "filename": metadatas[i].get("filename", "Unknown") if metadatas else "Unknown",
+                "snippet": documents[i][:100] + "..." if documents and len(documents[i]) > 100 else documents[i]
             } for i in range(len(ids))
         ]
         
