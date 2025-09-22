@@ -5,7 +5,7 @@ import os
 import requests
 import yfinance as yf
 import PyPDF2 
-from alpha_quickagent import ConversationManager, check_microphone
+from alpha_quickagent import ConversationManager, check_microphone, LanguageModelProcessor
 from alpha_DocumentContextManager import DocumentContextManager
 from chunk_config import CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM, SEMANTIC_SIMILARITY_THRESHOLD, CHUNKING_TYPE
 import threading
@@ -411,12 +411,19 @@ def get_documents():
 # Exposed but not used
 @app.route('/query', methods=['POST'])
 def query():
-    query_text = request.json.get('query')
-    if not query_text:
-        return jsonify({"status": "No query provided"}), 400
-    # Process the query with document context
-    response_text = conversation_manager.llm.process(query_text)
-    return jsonify({"response": response_text})
+    try:
+        data = request.get_json()
+        query = data.get('query')
+        if not query:
+            logging.warning("No query provided in /query request")
+            return jsonify({'error': 'No query provided'}), 400
+        processor = LanguageModelProcessor()
+        response = processor.process(query)
+        logging.info(f"Query processed: {query[:50]}...")
+        return jsonify({'response': response})
+    except Exception as e:
+        logging.error(f"Error in /query: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 
 # Utils function

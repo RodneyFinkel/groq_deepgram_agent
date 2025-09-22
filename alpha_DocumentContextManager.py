@@ -108,7 +108,7 @@ class DocumentContextManager:
         # New: Update BM25 index
         tokenized_doc = clean_text.lower().split() # simple tokenization for BM25
         self.documents_for_bm25.append(tokenized_doc)
-        self.bm25_index =BM25Okapi(self.documents_for_bm25) # rebuild index (efficient for small corpora, optimize for large)
+        self.bm25_index = BM25Okapi(self.documents_for_bm25) # rebuild index (efficient for small corpora, optimize for large)
         logging.info(f"Updated BM25 index with new document {doc_id}")
 
     

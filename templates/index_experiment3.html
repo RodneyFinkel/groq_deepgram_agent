@@ -502,6 +502,14 @@
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2>Transcript</h2>
                     <p id="transcript" class="bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-lg min-h-[120px] text-sm text-gray-700 dark:text-gray-200 overflow-auto">No transcript available yet.</p>
+                    <div class="mt-4">
+                        <label for="manualQuery" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Type a Query</label>
+                        <input type="text" id="manualQuery" placeholder="Enter your query..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-800 dark:border-gray-600 dark:text-white">
+                        <button type="button" onclick="submitQuery()" class="mt-2 group relative glass-button border border-gray-200/20 px-4 py-2 rounded-full hover:bg-blue-100/30 dark:hover:bg-blue-900/30 text-blue-600 hover:text-blue-700 font-medium transition-all duration-200">
+                            Submit Query
+                            <span class="tooltip absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -top-10 left-1/2 transform -translate-x-1/2">Send typed query</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2>LLM Response</h2>
@@ -659,6 +667,53 @@
 
             function stopPolling() {
                 clearInterval(pollingInterval);
+            }
+
+
+            // NEW: Submit Typed Query
+            function submitQuery() {
+                const query = document.getElementById('manualQuery').value.trim();
+                if (!query) {
+                    Toastify({
+                        text: 'Please enter a query.',
+                        duration: 3000,
+                        style: { background: '#ef4444' }
+                    }).showToast();
+                    return;
+                }
+                document.getElementById('transcript').textContent = `Query: ${query}`;
+                document.getElementById('response').textContent = 'Processing...';
+                fetch('/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            Toastify({
+                                text: data.error,
+                                duration: 3000,
+                                style: { background: '#ef4444' }
+                            }).showToast();
+                            document.getElementById('response').textContent = 'Error processing query.';
+                        } else {
+                            document.getElementById('response').textContent = data.response || 'No response yet.';
+                            Toastify({
+                                text: 'Query processed successfully!',
+                                duration: 3000,
+                                style: { background: '#10b981' }
+                            }).showToast();
+                        }
+                    })
+                    .catch(error => {
+                        Toastify({
+                            text: 'Error submitting query: ' + error,
+                            duration: 3000,
+                            style: { background: '#ef4444' }
+                        }).showToast();
+                        document.getElementById('response').textContent = 'Error processing query.';
+                    });
             }
 
             // PDF Upload
@@ -1134,6 +1189,7 @@
             window.setPreset = setPreset;
             window.updateChunkingConfig = updateChunkingConfig;
             window.resetChunkingConfig = resetChunkingConfig;
+            window.submitQuery = submitQuery;
         });
     </script>
 </body>
