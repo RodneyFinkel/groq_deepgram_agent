@@ -16,11 +16,11 @@ class DocumentContextManager:
     def __init__(self, similarity_threshold=0.1):
         # Using chromadb
         self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
-        print("Chroma Initialized")
+        logging.info("Chroma Initialized")
         self.collection = self.client.get_or_create_collection("documents", metadata={"hnsw:space": "cosine"}) # Ensure cosine similarity is used
         
         self.model = SentenceTransformer('all-MiniLM-L6-v2') # New model
-        print("SentenceTransformer Initialized")
+        logging.info("SentenceTransformer Initialized")
         
         # Store similarity threshold
         self.similarity_threshold = similarity_threshold
@@ -110,6 +110,19 @@ class DocumentContextManager:
         self.documents_for_bm25.append(tokenized_doc)
         self.bm25_index = BM25Okapi(self.documents_for_bm25) # rebuild index (efficient for small corpora, optimize for large)
         logging.info(f"Updated BM25 index with new document {doc_id}")
+        
+        
+    def normalize_bm25_scores(self, bm25_scores):
+        if not bm25_scores or len(bm25_scores) == 0:
+            return bm25_scores
+        min_score = min(bm25_scores)
+        max_score = max(bm25_scores)
+        if max_score == min_score:
+            return [0.0] * len(bm25_scores)
+        normalized_scores = [(score - min_score)/ (max_score - min_score) for score in bm25_scores]
+        logging.info(f"BM25 scores normalized: min={min_score}, max={max_score}")
+        return normalized_scores
+    
 
     
     #  Using Chromadb
@@ -141,44 +154,50 @@ class DocumentContextManager:
                 "distance": distances[i],
                 "similarity": 1 - distances[i],
                 "filename": metadatas[i].get("filename", "Unknown") if metadatas else "Unknown",
-                "snippet": documents[i][:100] + "..." if documents and len(documents[i]) > 100 else documents[i]
+                "snippet": documents[i][:100] + "..." if documents and len(documents[i]) > 100 else documents[i],
+                "bm25_score": 0.0 # Placeholder: updated below
             } for i in range(len(ids))
         ]
         
         # New: Hybrid Search if enabled
-        hybrid_scores = {}
         if self.retrieval_config['hybrid_enabled'] and self.bm25_index:
             tokenized_query = query.lower().split()
             bm25_scores = self.bm25_index.get_scores(tokenized_query)
+            normalized_bm25_scores = self.normalize_bm25_scores(bm25_scores)
+            hybrid_scores = {}
             for i, doc_id in enumerate(ids):
                 semantic_sim = 1 - distances[i]
-                bm25_score = bm25_scores[i] if i < len(bm25_scores) else 0 # Align with retrieved docs
+                bm25_score = normalized_bm25_scores[i] if i < len(normalized_bm25_scores) else 0 # Align with retrieved docs
+                self.last_raw_results[i]["bm25_score"] = bm25_score # Store normalized BM25 score
                 fused_score = (
                     self.retrieval_config['semantic_weight'] * semantic_sim +
                     self.retrieval_config['bm25_weight'] * bm25_score
                 )
                 hybrid_scores[doc_id] = fused_score
+                logging.info(f"Doc {doc_id}: semantic={semantic_sim:.4f}, bm25={bm25_score:.4f}, fused={fused_score:.4f}")
                 
-                # sort by fused top score and take top k # FIXED: dropped refetch docs everytime
-                sorted_docs = sorted(hybrid_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
-                # Reorder results based on sorted doc_ids
-                sorted_ids = [doc[0] for doc in sorted_docs]
-                sorted_documents = []
-                sorted_metadatas = []
-                for doc_id in sorted_ids:
-                    idx = ids.index(doc_id)
-                    sorted_documents.append(documents[idx])
-                    sorted_metadatas.append(metadatas[idx])
-                ids = sorted_ids
-                documents = sorted_documents
-                metadatas = sorted_metadatas
-                # Update distances to reflect fused scores for consistency
-                distances = [1 - hybrid_scores[doc_id] for doc_id in ids]
-                    
-                # # Refetch docs, metas for sorted ids (inneficient, will optimize later)
-                # refetched = self.collection.get(ids=ids, include=['documents', 'metadatas'])
-                # documents = refetched['documents']
-                # metadatas = refetched['metadatas']
+            # sort by fused top score and take top k # FIXED: dropped refetch docs everytime
+            sorted_docs = sorted(hybrid_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+            # Reorder results based on sorted doc_ids
+            sorted_ids = [doc[0] for doc in sorted_docs]
+            sorted_documents = []
+            sorted_metadatas = []
+            sorted_distances = []
+            for doc_id in sorted_ids:
+                idx = ids.index(doc_id)
+                sorted_documents.append(documents[idx])
+                sorted_metadatas.append(metadatas[idx])
+                sorted_distances.append(1 - hybrid_scores[doc_id])  # Convert fused score back to distance for consistency
+            ids = sorted_ids
+            documents = sorted_documents
+            metadatas = sorted_metadatas
+            # Update distances to reflect fused scores for consistency
+            distances = sorted_distances
+                
+            # # Refetch docs, metas for sorted ids (inneficient, will optimize later)
+            # refetched = self.collection.get(ids=ids, include=['documents', 'metadatas'])
+            # documents = refetched['documents']
+            # metadatas = refetched['metadatas']
                 
         # New: ColBERT reranking if enabled
         if self.retrieval_config['rerank_enabled'] and self.colbert_reranker:
