@@ -122,7 +122,7 @@ class DocumentContextManager:
         query_embedding = self._embed_text(query)
         query_params = {
             'query_embeddings': [query_embedding],
-            'n_results': top_k,
+            'n_results': top_k if not self.retrieval_config['rerank_enabled'] else self.retrieval_config['rerank_k'],
             'include': ["documents", "metadatas", "distances"]
         }
         
@@ -159,13 +159,26 @@ class DocumentContextManager:
                 )
                 hybrid_scores[doc_id] = fused_score
                 
-                # sort by fused top score and take top k
-                sorted_docs = sorted(hybrid_scores.items(), key=lambda x:[1], reverse=True)[:top_k]
-                ids = [doc[0] for doc in sorted_docs]
-                # Refetch docs, metas for sorted ids (inneficient, will optimize later)
-                refetched = self.collection.get(ids=ids, include=['documents', 'metadatas'])
-                documents = refetched['documents']
-                metadatas = refetched['metadatas']
+                # sort by fused top score and take top k # FIXED: dropped refetch docs everytime
+                sorted_docs = sorted(hybrid_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
+                # Reorder results based on sorted doc_ids
+                sorted_ids = [doc[0] for doc in sorted_docs]
+                sorted_documents = []
+                sorted_metadatas = []
+                for doc_id in sorted_ids:
+                    idx = ids.index(doc_id)
+                    sorted_documents.append(documents[idx])
+                    sorted_metadatas.append(metadatas[idx])
+                ids = sorted_ids
+                documents = sorted_documents
+                metadatas = sorted_metadatas
+                # Update distances to reflect fused scores for consistency
+                distances = [1 - hybrid_scores[doc_id] for doc_id in ids]
+                    
+                # # Refetch docs, metas for sorted ids (inneficient, will optimize later)
+                # refetched = self.collection.get(ids=ids, include=['documents', 'metadatas'])
+                # documents = refetched['documents']
+                # metadatas = refetched['metadatas']
                 
         # New: ColBERT reranking if enabled
         if self.retrieval_config['rerank_enabled'] and self.colbert_reranker:
@@ -175,7 +188,9 @@ class DocumentContextManager:
             # Update with reranked order/scores
             documents = [doc['content'] for doc in reranked]
             metadatas = [metadatas[rerank_docs.index(doc['content'])] for doc in reranked]
-                            
+            # Update distances to reflect ColBERT scores
+            distances = [1 - doc['score'] for doc in reranked]
+            ids = [ids[rerank_docs.index(doc['content'])] for doc in reranked]                
                        
         
         # NEW: Similarity threshold filtering
