@@ -297,9 +297,30 @@ def get_chunking_info():
 
 @app.route('/get_last_retrieval', methods=['GET'])
 def get_last_retrieval():
-    # Expose last raw retieval results from DocumentContextManager
-    raw_results = getattr(context_manager, "last_raw_results", [])
-    return jsonify(raw_results)
+    try:
+        last_results = context_manager.last_raw_results
+        if not last_results:
+            return jsonify({"results": [], "status": 'No retrieval data available'}), 200
+        # Format results for UI
+        formatted_results = [
+            {
+                "doc_id": result["doc_id"],
+                "filename": result["filename"],
+                "snippet": result["snippets"],
+                "similarity": round(result["similarity"]),
+                "distance": round(result["distance"], 4)   
+            }
+            for result in last_results
+        ]
+        formatted_results.sort(key=lambda x: x["similarity"], reverse=True)
+        logging.info(f"Retrieved {len(formatted_results)} last retrieval results")
+        return jsonify({"results": formatted_results, "status": "Success"}), 200
+    
+    except Exception as e:
+        logging.error(f"Error fetching last retrieval results: {str(e)}")
+        return jsonify({"error": str(e)}), 500    
+        
+    
 
 # Batch upload endpoint    
 @app.route('/upload_pdf', methods=['POST'])

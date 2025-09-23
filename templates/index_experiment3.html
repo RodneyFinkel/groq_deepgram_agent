@@ -515,9 +515,20 @@
                     <h2>LLM Response</h2>
                     <p id="response" class="bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-lg min-h-[120px] text-sm text-gray-700 dark:text-gray-200 overflow-auto">No response yet.</p>
                 </div>
-                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
-                    <h2>Last Retrieval</h2>
-                    <div id="retrieval-info" class="bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-lg min-h-[120px] text-sm text-gray-700 dark:text-gray-200 overflow-auto">No data</div>
+                <div class="bg-white dark:bg-gray-800 p-4 rounded shadow mt-4">
+                    <h2 class="text-lg font-bold mb-2">Last Retrieval</h2>
+                    <div id="last-retrieval" class="text-sm">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-200 dark:bg-gray-700">
+                                    <th class="p-2 text-left">Filename</th>
+                                    <th class="p-2 text-left">Snippet</th>
+                                    <th class="p-2 text-left">Similarity (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="last-retrieval-list"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2>Chunking Info</h2>
@@ -547,6 +558,32 @@
                 lightIcon.classList.toggle('hidden');
                 darkIcon.classList.toggle('hidden');
             });
+
+            // Fetch and display last retrieval results
+        async function fetchLastRetrieval() {
+            try {
+                const response = await fetch('/get_last_retrieval');
+                const data = await response.json();
+                const retrievalList = document.getElementById('last-retrieval-list');
+                retrievalList.innerHTML = ''; // Clear existing rows
+                if (data.results.length === 0) {
+                    retrievalList.innerHTML = '<tr><td colspan="3" class="p-2 text-center">No retrieval data available</td></tr>';
+                    return;
+                }
+                data.results.forEach(result => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-2">${result.filename}</td>
+                        <td class="p-2">${result.snippet}</td>
+                        <td class="p-2">${result.similarity}%</td>
+                    `;
+                    retrievalList.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error fetching last retrieval:', error);
+                document.getElementById('last-retrieval-list').innerHTML = '<tr><td colspan="3" class="p-2 text-center">Error loading data</td></tr>';
+            }
+        }
 
             // Clock
             function updateClock() {
