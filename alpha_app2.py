@@ -323,7 +323,7 @@ def get_last_retrieval():
             {
                 "doc_id": result["doc_id"],
                 "filename": result["filename"],
-                "snippet": result["snippets"],
+                "snippet": result["snippet"],
                 "similarity": round(result["similarity"], 4),
                 "bm25_score": round(result["bm25_score"], 4),
                 "distance": round(result["distance"], 4)   

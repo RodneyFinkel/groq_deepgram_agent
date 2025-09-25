@@ -121,7 +121,7 @@ class DocumentContextManager:
             
         
     def normalize_bm25_scores(self, bm25_scores):
-        if not bm25_scores or len(bm25_scores) == 0:
+        if len(bm25_scores) == 0:
             logging.info("No BM25 scores to normalize (empty list)")
             return bm25_scores
         min_score = min(bm25_scores)
