@@ -1,10 +1,11 @@
 # Using chromadb
 from chromadb import Client
 from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer # For better embeddings
+from sentence_transformers import SentenceTransformer # Upgrade from BERT embeddings
 import numpy as np
 import time
 import logging
+import uuid
 
 # New Imports for Hybrid Search
 from rank_bm25 import BM25Okapi
@@ -13,8 +14,9 @@ from ragatouille import RAGPretrainedModel  # For ColBERT
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class DocumentContextManager:
-    def __init__(self, similarity_threshold=0.1):
+    def __init__(self, similarity_threshold=0.15):
         # Using chromadb
+        self.id = str(uuid.uuid4())
         self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
         logging.info("Chroma Initialized")
         self.collection = self.client.get_or_create_collection("documents", metadata={"hnsw:space": "cosine"}) # Ensure cosine similarity is used
@@ -28,6 +30,7 @@ class DocumentContextManager:
         
         # CHANGE: Initialize last_raw_results to store raw retrieval data for debugging
         self.last_raw_results = []
+        logging.info("initializing self.last_raw_results-pre get similar docs")
         self.retrieval_config = {
             'hybrid_enabled': True,  # Toggle hybrid search
             'semantic_weight': 0.7,   # Weight for semantic score in fusion (0-1)
@@ -97,7 +100,7 @@ class DocumentContextManager:
             "summary":text[:50]
         }
         
-        print(f"Storing Embedding for Doc ID: {doc_id} with embedding:{embedding[:5]}")
+        logging.info(f"Storing Embedding for Doc ID: {doc_id} with embedding:{embedding[:5]}")
         self.collection.add(
             ids=[doc_id],
             embeddings=[embedding.tolist()],
@@ -105,28 +108,53 @@ class DocumentContextManager:
             documents=[clean_text]
         )
         
-        # New: Update BM25 index
+        # New: Update BM25 index (THIS IS WHERE THE bm25_index is created using the derired context_manager instance)
         tokenized_doc = clean_text.lower().split() # simple tokenization for BM25
         self.documents_for_bm25.append(tokenized_doc)
-        self.bm25_index = BM25Okapi(self.documents_for_bm25) # rebuild index (efficient for small corpora, optimize for large)
-        logging.info(f"Updated BM25 index with new document {doc_id}")
-        
+        logging.info(f"Tokenized document {doc_id}: {tokenized_doc[:10]}...(total {len(tokenized_doc)} tokens)")
+        try:
+            self.bm25_index = BM25Okapi(self.documents_for_bm25) # rebuild index (efficient for small corpora, optimize for large)
+            logging.info(f"Successfully updated BM25 index with {len(self.documents_for_bm25)} documents")
+            print(self.bm25_index)
+        except Exception as e:
+            logging.error(f"Failed to update BM25 index: {str(e)}")
+            self.bm25_index = None
+            
         
     def normalize_bm25_scores(self, bm25_scores):
         if not bm25_scores or len(bm25_scores) == 0:
+            logging.info("No BM25 scores to normalize (empty list)")
             return bm25_scores
         min_score = min(bm25_scores)
         max_score = max(bm25_scores)
         if max_score == min_score:
+            logging.info(f"BM25 scores identical: min={min_score}, max={max_score}, returning zeros")
             return [0.0] * len(bm25_scores)
         normalized_scores = [(score - min_score)/ (max_score - min_score) for score in bm25_scores]
         logging.info(f"BM25 scores normalized: min={min_score}, max={max_score}")
         return normalized_scores
     
+    # Add this method to DocumentContextManager class in alpha_DocumentContextManager.py
+    def rebuild_bm25_from_chroma(self):
+        all_data = self.collection.get(include=['documents'])
+        self.documents_for_bm25 = []
+        for doc in all_data['documents']:
+            tokenized_doc = doc.lower().split()
+            if tokenized_doc:
+                self.documents_for_bm25.append(tokenized_doc)
+        if self.documents_for_bm25:
+            try:
+                self.bm25_index = BM25Okapi(self.documents_for_bm25)
+                logging.info(f"Rebuilt BM25 index from {len(self.documents_for_bm25)} existing documents")
+            except Exception as e:
+                logging.error(f"Failed to rebuild BM25 from Chroma: {str(e)}")
+    
 
     
     #  Using Chromadb
     def get_similar_documents(self, query, top_k=10, keyword_filter=None):
+        logging.info("initiating get_similar_documents function")
+        print(self.bm25_index)
         if len(query.strip()) < 3: # skip very short queries
             print('~Query to short, skipping retrieval.')
             return []
@@ -158,11 +186,19 @@ class DocumentContextManager:
                 "bm25_score": 0.0 # Placeholder: updated below
             } for i in range(len(ids))
         ]
+        logging.info("initializing self.last_raw_results in get_similar_documents")
         
-        # New: Hybrid Search if enabled
+        # Search to see if singleton in LanguageModelProcessor uses correct context_manager instance/object
+        print(self.retrieval_config)
+        print(self.bm25_index)
+        logging.info(f"Documents for BM25: {len(self.documents_for_bm25)}")
+        logging.debug(f"BM25 index type: {type(self.bm25_index)}")
+        # New Hybrid Search
         if self.retrieval_config['hybrid_enabled'] and self.bm25_index:
+            logging.info("Starting hybrid retrieval")
             tokenized_query = query.lower().split()
             bm25_scores = self.bm25_index.get_scores(tokenized_query)
+            logging.info(f"Raw BM25 scores: {bm25_scores[:5]}... (total {len(bm25_scores)})")
             normalized_bm25_scores = self.normalize_bm25_scores(bm25_scores)
             hybrid_scores = {}
             for i, doc_id in enumerate(ids):
@@ -193,11 +229,10 @@ class DocumentContextManager:
             metadatas = sorted_metadatas
             # Update distances to reflect fused scores for consistency
             distances = sorted_distances
-                
-            # # Refetch docs, metas for sorted ids (inneficient, will optimize later)
-            # refetched = self.collection.get(ids=ids, include=['documents', 'metadatas'])
-            # documents = refetched['documents']
-            # metadatas = refetched['metadatas']
+        else:
+            logging.info("Hybrid search skipped: hybrid_enabled=%s, bm25_index=%s",
+                         self.retrieval_config['hybrid_enabled'], self.bm25_index is not None)        
+            
                 
         # New: ColBERT reranking if enabled
         if self.retrieval_config['rerank_enabled'] and self.colbert_reranker:

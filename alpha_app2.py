@@ -18,6 +18,7 @@ from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer # NEW
 import re # New
 from sentence_transformers.util import cos_sim #New
+import uuid
 
 # NEW: Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -25,6 +26,21 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 from dotenv import load_dotenv
 
 load_dotenv()  
+
+# Singleton pattern for DocumentContextManager
+class SingletonDocumentContextManager:
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            logging.info("Creating singleton DocumentContextManager instance")
+            cls._instance = DocumentContextManager(*args, **kwargs)
+            # Load existing documents from Chroma and rebuild BM25 index
+            cls._instance.rebuild_bm25_from_chroma()
+        return cls._instance
+            
+            
+    
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
@@ -46,8 +62,9 @@ Session(app)
 executor = ThreadPoolExecutor(max_workers=4)
 
 # Initialize with default similarity threshold
-context_manager = DocumentContextManager(similarity_threshold=0.1)
-conversation_manager = ConversationManager()
+context_manager = SingletonDocumentContextManager(similarity_threshold=0.14)
+# Passing the singleton here to be used in ConversationManager, which propogates it to LanguageModelProcessor where get_similar_documents is activated
+conversation_manager = ConversationManager(context_manager=context_manager) 
 transcription_thread = None # Start the transcription process in a separate thread
 
 UPLOAD_FOLDER = 'uploads'
@@ -528,4 +545,4 @@ def get_quote():
         
      
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

@@ -3,14 +3,11 @@ from dotenv import load_dotenv
 import shutil
 import subprocess
 import requests
-import time
 import os
 import pyaudio
 
-from alpha_DocumentContextManager import DocumentContextManager
 from chunk_config import CHUNK_SIZE_LLM, CHUNK_OVERLAP_LLM
 from transformers import AutoTokenizer
-from sentence_transformers import SentenceTransformer
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
@@ -41,7 +38,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 load_dotenv()
 
 class LanguageModelProcessor:
-    def __init__(self, context_manager=None):
+    def __init__(self, context_manager):
         self.llm = ChatGroq(temperature=0, 
                             model_name="deepseek-r1-distill-llama-70b", # this is a new valid model 
                             groq_api_key=os.getenv("GROQ_API_KEY"), 
@@ -54,6 +51,7 @@ class LanguageModelProcessor:
         #self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
+        logging.info(f"LanguageModelProcessor using context_manager instance ID: {self.context_manager.id}")
         self.max_history_exchanges = 10
 
         # Load the system prompt from a file
@@ -120,7 +118,7 @@ class LanguageModelProcessor:
         # Retrieve similar documents based on the user query
             if self.context_manager:
                 similar_docs = self.context_manager.get_similar_documents(text, top_k=10)
-                print(f"Similar Docs: {similar_docs}")
+                logging.info(f"Retrieved {len(similar_docs)} similar documents using instance ID: {self.context_manager.id}")
                 # context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
                 # context = " ".join([doc['document'] for doc in similar_docs])  # Extract the document text from each result
                 if similar_docs:
@@ -341,20 +339,19 @@ async def get_transcript(callback):
         return
 
 class ConversationManager:
-    def __init__(self):
+    def __init__(self, context_manager=None):
         self.transcription_response = ""
         self.llm_response = '' 
-        self.context_manager = DocumentContextManager() 
+        self.context_manager = context_manager
+        logging.info(f"ConversationManager using context_manager instance ID: {self.context_manager.id}")
         self.llm = LanguageModelProcessor(context_manager=self.context_manager)
         self.transcription_active = False
-        # NEW: Initialize TTS
-        # self.tts = TextToSpeech()
         self.loop = asyncio.get_event_loop()  # Use main event loop
         
     async def main(self):
         def handle_full_sentence(full_sentence):
             self.transcription_response = full_sentence
-            # self.transcription_active = False # NEW: Stop after one sentnce for demo purposes
+            # self.transcription_active = False # NEW: Stop after one sentence for demo purposes
             
         while True:
             await get_transcript(handle_full_sentence)
