@@ -15,7 +15,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 class DocumentContextManager:
     def __init__(self, similarity_threshold=0.15):
-        # Using chromadb
         self.id = str(uuid.uuid4())
         self.client = Client(Settings(persist_directory="./chroma_storage", anonymized_telemetry=False))
         logging.info("Chroma Initialized")

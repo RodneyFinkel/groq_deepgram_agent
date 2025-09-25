@@ -6,6 +6,7 @@ import numpy as np
 from models import Document
 # from app2 import db
 
+
 class DocumentContextManager:
     def __init__(self):
         from models import Document

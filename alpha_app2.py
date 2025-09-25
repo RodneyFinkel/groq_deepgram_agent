@@ -18,7 +18,7 @@ from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer # NEW
 import re # New
 from sentence_transformers.util import cos_sim #New
-import uuid
+
 
 # NEW: Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
