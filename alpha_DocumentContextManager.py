@@ -192,6 +192,7 @@ class DocumentContextManager:
         print(self.bm25_index)
         logging.info(f"Documents for BM25: {len(self.documents_for_bm25)}")
         logging.debug(f"BM25 index type: {type(self.bm25_index)}")
+        
         # New Hybrid Search
         if self.retrieval_config['hybrid_enabled'] and self.bm25_index:
             logging.info("Starting hybrid retrieval")
@@ -238,18 +239,32 @@ class DocumentContextManager:
             # Prepare docs for reranking
             rerank_docs = documents[:self.retrieval_config['rerank_k']]
             reranked = self.colbert_reranker.rerank(query, rerank_docs, k=top_k)
+            # Extract raw ColBERT scores
+            colbert_scores = [doc['score'] for doc in reranked]
+            #Normalise ColBERT scores to [0,1] using min-max
+            if colbert_scores:
+                min_colbert = min(colbert_scores)
+                max_colbert = max(colbert_scores)
+                if max_colbert > min_colbert:
+                     normalized_colbert = [(score - min_colbert) / (max_colbert - min_colbert) for score in colbert_scores]
+                else:
+                    normalized_colbert = [0.0] * len(colbert_scores)
+                logging.info(f"Normalized ColBERT scores: min={min_colbert}, max={max_colbert}")
+            else:
+                normalized_colbert = []
+                    
             # Update with reranked order/scores
             documents = [doc['content'] for doc in reranked]
             metadatas = [metadatas[rerank_docs.index(doc['content'])] for doc in reranked]
             # Update distances to reflect ColBERT scores
-            distances = [1 - doc['score'] for doc in reranked]
+            distances = [1 - norm_score for norm_score in normalized_colbert]
             ids = [ids[rerank_docs.index(doc['content'])] for doc in reranked]                
                        
         
         # NEW: Similarity threshold filtering
         similar_docs = []
         for i in range(len(ids)):
-            similarity = 1 - distances[i] if distances else 0 
+            similarity = max(0.0, min(1.0, 1 - distances[i])) if distances else 0  # Clamp to [0,1]
             logging.info(f"Raw distance for {ids[i]}: {distances[i]}, similarity: {similarity}") # Log raw scores
             if similarity >= self.similarity_threshold:
                 similar_docs.append({
