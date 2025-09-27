@@ -37,7 +37,6 @@ python3 alpha_app2.py
 
 
 
-![Screen Shot 2024-07-27 at 5 50 48](https://github.com/user-attachments/assets/d72bbeb1-447a-4872-85bc-cde071a26e68)
 
 Toggle the sidebar for the AI RAG AGENT
 
