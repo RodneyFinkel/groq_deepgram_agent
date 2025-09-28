@@ -31,7 +31,7 @@ LAUNCH FLASK WEB APP:
 <img width="1677" height="1050" alt="Screenshot 2025-09-27 at 21 12 24" src="https://github.com/user-attachments/assets/e3748a22-db15-4518-b569-53d4173450b1" />
 
 
-<img width="1680" height="1050" alt="Screenshot 2025-08-31 at 3 03 38" src="https://github.com/user-attachments/assets/c03d8d7a-ed32-4e9a-afbe-22330a00bfb4" />
+
 
 python3 alpha_app2.py 
 
