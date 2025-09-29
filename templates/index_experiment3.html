@@ -42,6 +42,19 @@
         }
     </script>
     <style>
+        
+        #retrievalTable td:nth-child(2) {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #retrievalTable th {
+            cursor: pointer;
+        }
+        #retrievalTable th:hover {
+            background-color: #ddd;
+        }
         .glass {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
@@ -232,6 +245,7 @@
             to { transform: rotate(360deg); }
         }
     </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col font-sans antialiased">
     <header class="glass shadow-md border-b border-gray-100/20">
@@ -529,10 +543,10 @@
                         <tbody></tbody>
                     </table>
                 </div>
-                <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
+                <!-- <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
                     <h2>Chunking Info</h2>
                     <div id="chunking-info" class="bg-gray-50/50 dark:bg-gray-800/50 p-4 rounded-lg min-h-[120px] text-sm text-gray-700 dark:text-gray-200 overflow-auto">No data</div>
-                </div>
+                </div> -->
             </div>
         </main>
     </div>
@@ -547,6 +561,13 @@
         © 2025 QuickRagAgent. All rights reserved.
     </footer>
     <script>
+
+        // Create tooltip element
+        const tooltip = d3.select('body')
+            .append('div')
+            .attr('class', 'tooltip')
+            .style('opacity', 0);
+
         document.addEventListener('DOMContentLoaded', function() {
             // Theme toggle
             const themeToggle = document.getElementById('themeToggle');
@@ -1224,13 +1245,135 @@
             }
 
 
-            // Chunking Info ---no need to repeatedly fetch this in the frontend or is there? when i blacked this out everything broke...
-            function refreshInfo() {
-                fetch('/get_chunking_info')
-                    .then(response => response.json())
+            // Render Bar Chart for Similarity and BM25 Scores
+            function renderScoreChart() {
+                fetch('/get_last_retrieval')
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.json();
+                    })
                     .then(data => {
-                        document.getElementById('chunking-info').textContent = JSON.stringify(data, null, 2);
-                    });
+                        if (data.status !== 'Success' || !data.results || data.results.length === 0) {
+                            console.log('No data for score chart');
+                            d3.select('#scoreChart').selectAll('*').remove();
+                            d3.select('#scoreChart').append('p').text('No data available for chart');
+                            return;
+                        }
+
+                        const margin = { top: 20, right: 30, bottom: 100, left: 60 };
+                        const width = 800 - margin.left - margin.right;
+                        const height = 400 - margin.top - margin.bottom;
+
+                        d3.select('#scoreChart').selectAll('*').remove();
+                        const svg = d3.select('#scoreChart')
+                            .append('svg')
+                            .attr('width', width + margin.left + margin.right)
+                            .attr('height', height + margin.top + margin.bottom)
+                            .append('g')
+                            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+                        const x = d3.scaleBand()
+                            .domain(data.results.map(d => d.doc_id))
+                            .range([0, width])
+                            .padding(0.4);
+
+                        const y = d3.scaleLinear()
+                            .domain([0, 1])
+                            .range([height, 0]);
+
+                        // Similarity bars
+                        svg.selectAll('.similarity-bar')
+                            .data(data.results)
+                            .enter()
+                            .append('rect')
+                            .attr('class', 'similarity-bar')
+                            .attr('x', d => x(d.doc_id))
+                            .attr('y', d => y(d.similarity))
+                            .attr('width', x.bandwidth() / 2)
+                            .attr('height', d => height - y(d.similarity))
+                            .attr('fill', '#4CAF50')
+                            .on('mouseover', function(event, d) {
+                                d3.select(this).attr('opacity', 0.8);
+                                tooltip.style('opacity', 1)
+                                    .html(`<strong>${d.filename}</strong><br>Similarity: ${(d.similarity * 100).toFixed(1)}%`)
+                                    .style('left', (event.pageX + 10) + 'px')
+                                    .style('top', (event.pageY - 10) + 'px');
+                            })
+                            .on('mouseout', function() {
+                                d3.select(this).attr('opacity', 1);
+                                tooltip.style('opacity', 0);
+                            });
+
+                        // BM25 bars
+                        svg.selectAll('.bm25-bar')
+                            .data(data.results)
+                            .enter()
+                            .append('rect')
+                            .attr('class', 'bm25-bar')
+                            .attr('x', d => x(d.doc_id) + x.bandwidth() / 2)
+                            .attr('y', d => y(d.bm25_score || 0))
+                            .attr('width', x.bandwidth() / 2)
+                            .attr('height', d => height - y(d.bm25_score || 0))
+                            .attr('fill', '#2196F3')
+                            .on('mouseover', function(event, d) {
+                                d3.select(this).attr('opacity', 0.8);
+                                tooltip.style('opacity', 1)
+                                    .html(`<strong>${d.filename}</strong><br>BM25: ${(d.bm25_score || 0).toFixed(2)}`)
+                                    .style('left', (event.pageX + 10) + 'px')
+                                    .style('top', (event.pageY - 10) + 'px');
+                            })
+                            .on('mouseout', function() {
+                                d3.select(this).attr('opacity', 1);
+                                tooltip.style('opacity', 0);
+                            });
+
+                        // Axes
+                        svg.append('g')
+                            .attr('transform', `translate(0,${height})`)
+                            .call(d3.axisBottom(x))
+                            .selectAll('text')
+                            .attr('transform', 'rotate(-45)')
+                            .style('text-anchor', 'end');
+
+                        svg.append('g')
+                            .call(d3.axisLeft(y).tickFormat(d => `${(d * 100).toFixed(0)}%`));
+
+                        // Labels
+                        svg.append('text')
+                            .attr('x', width / 2)
+                            .attr('y', -10)
+                            .attr('text-anchor', 'middle')
+                            .text('Similarity and BM25 Scores');
+
+                        svg.append('text')
+                            .attr('x', -height / 2)
+                            .attr('y', -40)
+                            .attr('transform', 'rotate(-90)')
+                            .attr('text-anchor', 'middle')
+                            .text('Score');
+                    })
+                    .catch(error => console.error('Error rendering score chart:', error));
+            }
+
+            // Update Chunking Info
+            function updateChunkingInfo() {
+                fetch('/get_chunking_info')
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        const chunkingElem = document.getElementById('chunkingInfo');
+                        chunkingElem.textContent = JSON.stringify(data, null, 2);
+                    })
+                    .catch(error => console.error('Error fetching chunking info:', error));
+        }
+
+            // Refresh Info (polling for both table and chunking)
+            function refreshInfo() {
+                updateRetrievalTable();
+                updateChunkingInfo();
+                renderScoreChart();  // Update chart
             }
             setInterval(refreshInfo, 5000);
             refreshInfo();
