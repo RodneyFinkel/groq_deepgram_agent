@@ -456,7 +456,7 @@ def query():
         if not query:
             logging.warning("No query provided in /query request")
             return jsonify({'error': 'No query provided'}), 400
-        processor = LanguageModelProcessor()
+        processor = LanguageModelProcessor(context_manager=context_manager)
         response = processor.process(query)
         logging.info(f"Query processed: {query[:50]}...")
         return jsonify({'response': response})

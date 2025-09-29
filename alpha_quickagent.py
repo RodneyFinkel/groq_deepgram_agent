@@ -87,6 +87,8 @@ class LanguageModelProcessor:
         return chunks
 
     def process(self, text):
+        """Process a query with optional web search and RAG, returning LLM response."""
+        
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
         
         # FIX: Define max_total_tokens at the start to avoid UnboundLocalError
