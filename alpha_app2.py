@@ -542,6 +542,19 @@ def get_quote():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
+@app.route('/set_online_research', methods=['POST'])
+def set_online_research():
+    try:
+        data = request.json
+        enabled = data.get('enabled', False)
+        logging.info(f"Setting online research to {enabled}")
+        conversation_manager.llm.set_online_research_enabled(enabled) # Update in processor
+        return jsonify({'status': 'Updated', 'enabled': enabled})
+    except Exception as e:
+        logging.error(f"Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    
+    
         
      
 if __name__ == '__main__':

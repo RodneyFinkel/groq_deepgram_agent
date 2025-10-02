@@ -21,6 +21,8 @@ from langchain.prompts import (
 )
 from langchain.chains import LLMChain
 
+from duckduckgo_search import DDGS
+
 import logging # New
 import re
 
@@ -45,10 +47,8 @@ class LanguageModelProcessor:
                             streaming=True,
                             max_retries=3,
                             ) # qwen/qwen3-32b
-        # self.llm = ChatOpenAI(temperature=0, model_name="gpt-4-0125-preview", openai_api_key=os.getenv("OPENAI_API_KEY"))
-        self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW...less hacky than below
-        # self.tokenizer = SentenceTransformer('all-MiniLM-L6-v2')._first_module().tokenizer # Too hacky
-        #self.tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
+        
+        self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
         self.context_manager = context_manager
         logging.info(f"LanguageModelProcessor using context_manager instance ID: {self.context_manager.id}")
@@ -71,7 +71,29 @@ class LanguageModelProcessor:
         )
         
         self.list_docs_pattern = re.compile(r"\b(list documents|what documents|available documents|show documents|documents in context)\b", re.IGNORECASE)
-       
+        self.web_search_pattern = re.compile(r"\b(web search|online research|current information|latest information|duckduckgo|search web|search online)\b", re.IGNORECASE)  # NEWx
+        self.online_research_enabled = True # Default to true
+        
+    # NEW
+    def set_online_research_enabled(self, enabled):
+        self.online_research_enabled = True
+        logging.info(f"Online research {'enabled' if enabled else 'disabled'}")
+        
+    
+    # NEW Web Search function using DUCKDUCKGO    
+    def perform_web_search(self, query, num_results=3):
+        try:
+            with DDGS() as ddgs:
+                results = ddgs.text(query, max_results=num_results)
+                summaries = [f"- {r['title']}: {r['body'][:150]}...({r['href']})" for r in results]
+                summary = "\n".join(summaries)
+                logging.info(f"WEb search for '{query}': {summary[:200]} ")
+                return summary
+                               
+        except Exception as e:
+            logging.error(f"Web search failed: {str(e)}")
+            return "Web search unavailable. Relying on local documents"
+    
     
     def chunk_text_by_tokens(self, text, chunk_size=1000, overlap=200):
         tokens = self.tokenizer.encode(text, add_special_tokens=False)
@@ -90,11 +112,18 @@ class LanguageModelProcessor:
         """Process a query with optional web search and RAG, returning LLM response."""
         
         self.memory.chat_memory.add_user_message(text)  # Add user message to memory
-        
-        # FIX: Define max_total_tokens at the start to avoid UnboundLocalError
-        max_total_tokens = CHUNK_SIZE_LLM  # Default value from chunk_config
+        max_total_tokens = CHUNK_SIZE_LLM  # Default value from chunk_config # FIX: Define max_total_tokens at the start to avoid UnboundLocalError
         context = ""  # Initialize context to avoid unbound variable issues
+        
+        if self.online_research_enabled and self.web_search_pattern.search(text) is not None:
+        #if self.online_research_enabled and self.web_search_pattern.search(text):
+            logging.info(f"Query '{text}' triggers web search")
+            web_results = self.perform_web_search(text)
+            if web_results:
+                context += f"\n\n[WEB SEARCH RESULTS]\n{web_results}"  
+                logging.info(f"Web results added to context: {web_results[:200]}.....")  
 
+        # Check for document listing request
         if self.context_manager and self.list_docs_pattern.search(text):
             # Fetch all documents from ChromaDB
             all_data = self.context_manager.collection.get(include=['documents', 'metadatas']) # This is where ChromaDB is accessed via context_manager
@@ -113,12 +142,10 @@ class LanguageModelProcessor:
             # add as system message
             self.memory.save_context({'input': text}, {'output': context})
             logging.info(f"Document list context added with {len(doc_list)} documents. context: {context[:100]}...")
-                
-        else:    
         
-        # Existing retrieval logic for normal queries
-        # Retrieve similar documents based on the user query
-            if self.context_manager:
+        # Regular query processing with RAG       
+        else:    
+            if self.context_manager: 
                 similar_docs = self.context_manager.get_similar_documents(text, top_k=10)
                 logging.info(f"Retrieved {len(similar_docs)} similar documents using instance ID: {self.context_manager.id}")
                 # context = " ".join([self.context_manager.documents[doc_id] for doc_id, _ in similar_docs])  # Combine the text of the similar documents
@@ -133,43 +160,52 @@ class LanguageModelProcessor:
                         chunk_text = doc['document']
                         context_parts.append(f"From {filename}:\n{chunk_text}")
                     context = "\n\n".join(context_parts)
-                else:
-                    context = ""
-            else:
-                context = ""
+                # else:
+                #     context = ""
+            # else:
+            #     context = ""
+                # else:
+                #     web_results = self.perform_web_search(text)
+                #     context = web_results
+                #     logging.info(f"No similar documents found. Using web search results as context: {context[:200]}...")
+                # # NEW -- Web Search Integration
+                # logging.info(f"Web search check - enabled: {self.online_research_enabled}, pattern match: {bool(self.web_search_pattern.search(text.lower()))}")
+                
             
-            # Review and implement properly
-            if context:
-                # max_chunk_tokens = CHUNK_SIZE_LLM  # Use global/configurable value
-                # chunks = list(self.chunk_text(context, max_chunk_tokens))
-                max_total_tokens = CHUNK_SIZE_LLM  
-                chunk_size = CHUNK_SIZE_LLM // 3   
-                overlap = CHUNK_OVERLAP_LLM        
+            
+            
+        # Review and implement properly
+        if context:
+            # max_chunk_tokens = CHUNK_SIZE_LLM  # Use global/configurable value
+            # chunks = list(self.chunk_text(context, max_chunk_tokens))
+            max_total_tokens = CHUNK_SIZE_LLM  
+            chunk_size = CHUNK_SIZE_LLM // 3   
+            overlap = CHUNK_OVERLAP_LLM        
 
-                chunks = self.chunk_text_by_tokens(context, chunk_size=chunk_size, overlap=overlap)
-                # Accumulate chunks until token limit is reached
-                selected_chunks = []
-                total_tokens = 0
-                for chunk in chunks:
-                    chunk_tokens = len(self.tokenizer.encode(chunk, add_special_tokens=False))
-                    if total_tokens + chunk_tokens > max_total_tokens:
-                        break
-                    selected_chunks.append(chunk)
-                    total_tokens += chunk_tokens
-                
-                context_for_llm = " ".join(selected_chunks)
-                
-                self.last_chunking_info = {
-                "num_chunks": len(selected_chunks),
-                "chunk_size": chunk_size,
-                "chunks": selected_chunks[:5]  # Show first 5 chunks for preview
-            }
-                print(f"Chunking Info: {self.last_chunking_info}") # Log Chunking Information
-                context = context_for_llm
-                system_message = f"Reference Document Context:\n{context}"
-                self.memory.save_context({'input': text}, {'ouput': system_message})
-                print(f"System Message: {system_message[:50]}...Added")
+            chunks = self.chunk_text_by_tokens(context, chunk_size=chunk_size, overlap=overlap)
+            # Accumulate chunks until token limit is reached
+            selected_chunks = []
+            total_tokens = 0
+            for chunk in chunks:
+                chunk_tokens = len(self.tokenizer.encode(chunk, add_special_tokens=False))
+                if total_tokens + chunk_tokens > max_total_tokens:
+                    break
+                selected_chunks.append(chunk)
+                total_tokens += chunk_tokens
             
+            context_for_llm = " ".join(selected_chunks)
+            
+            self.last_chunking_info = {
+            "num_chunks": len(selected_chunks),
+            "chunk_size": chunk_size,
+            "chunks": selected_chunks[:5]  # Show first 5 chunks for preview
+        }
+            logging.info(f"Chunking Info: {self.last_chunking_info}")
+            context = context_for_llm
+            system_message = f"Reference Document Context:\n{context}"
+            self.memory.save_context({'input': text}, {'ouput': system_message})
+            logging.info(f"System Message: {system_message[:50]}...Added")
+        
         # --- Limit conversation history ---
         # Each exchange is user+AI, so keep last N*2 messages
         if len(self.memory.chat_memory.messages) > self.max_history_exchanges * 2:
@@ -190,13 +226,14 @@ class LanguageModelProcessor:
             history_tokens = len(self.tokenizer.encode(history_text))
             total_prompt_tokens = history_tokens + context_tokens + input_tokens
         self.memory.chat_memory.messages = prompt_messages 
-        
+   
         # ______Call the LLM_______
         response = self.conversation.invoke({"text": text})
         self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
         logging.info(f"LLM Response: {response['text'][:100]}...")  # Log first 100 chars of response
         return response['text']
         
+    
             
 
 # TTS Class using DEEPGRAM

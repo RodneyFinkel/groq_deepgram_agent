@@ -334,6 +334,7 @@
                             <span id="configStatus" class="text-xs px-2 py-1 rounded-full bg-gray-200/80 dark:bg-gray-700/80 text-gray-600 dark:text-gray-300">Loading...</span>
                         </div>
                         <div class="group relative">
+                            <label>Enable Online Research: <input type="checkbox" id="onlineResearchToggle" checked></label>
                             <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Similarity Threshold</label>
                             <input type="range" id="similarity_threshold" min="0" max="1" step="0.01" value="0.3" class="w-full slider">
                             <div class="flex justify-between text-xs mt-1 text-gray-600 dark:text-gray-400">
@@ -604,6 +605,17 @@
                 document.getElementById('last-retrieval-list').innerHTML = '<tr><td colspan="3" class="p-2 text-center">Error loading data</td></tr>';
             }
         }
+
+        document.getElementById('onlineResearchToggle').addEventListener('change', (event) => {
+            fetch('/set_online_research', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enabled: event.target.checked})
+            })
+            .then(response => response.json())
+            .then(data => console.log('Online research:', data))
+            .catch(error => console.error('Error:', error));
+        });
 
             // Clock
             function updateClock() {
