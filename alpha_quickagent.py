@@ -123,7 +123,7 @@ class LanguageModelProcessor:
             if web_results:
                 context += f"\n\n[WEB SEARCH RESULTS]\n{web_results}"  
                 logging.info(f"Web results added to context: {web_results[:200]}.....") 
-            return self.conversation.invoke({"text": text + "\n" + context})['text']  # Immediate return after web search 
+            return self.conversation.invoke({"text": text + "\n" + context})['text']  # NEW Immediate return after web search 
  
 
         # Check for document listing request
