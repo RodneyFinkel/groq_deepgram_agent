@@ -22,8 +22,6 @@ from langchain.prompts import (
 from langchain.chains import LLMChain
 
 from ddgs import DDGS
-#from duckduckgo_search import DDGS
-
 import logging # New
 import re
 
@@ -83,13 +81,18 @@ class LanguageModelProcessor:
     
     # NEW Web Search function using DUCKDUCKGO    
     def perform_web_search(self, query, num_results=3):
+        # Clean query: Remove trigger phrases to focus on intent
+        clean_query = self.web_search_pattern.sub('', query).strip()
+        if not clean_query:
+            clean_query = query  # Fallback if nothing after stripping
+        logging.info(f"Cleaned search query: '{clean_query}'")
         try:
             with DDGS() as ddgs:
-                results = ddgs.text(query, region='wt-wt', max_results=num_results)
+                results = ddgs.text(clean_query, region='wt-wt', max_results=num_results)
                 logging.info(f"Raw web search results: {results}")
                 summaries = [f"- {r['title']}: {r['body'][:150]}...({r['href']})" for r in results]
                 summary = "\n".join(summaries)
-                logging.info(f"WEb search for '{query}': {summary[:200]} ")
+                logging.info(f"WEb search for '{clean_query}': {summary[:200]} ")
                 return summary
                                
         except Exception as e:
@@ -117,6 +120,7 @@ class LanguageModelProcessor:
         max_total_tokens = CHUNK_SIZE_LLM  # Default value from chunk_config # FIX: Define max_total_tokens at the start to avoid UnboundLocalError
         context = ""  # Initialize context to avoid unbound variable issues
         
+        # WEb Search Handling
         if self.online_research_enabled and self.web_search_pattern.search(text) is not None:
             logging.info(f"Query '{text}' triggers web search")
             web_results = self.perform_web_search(text)
@@ -124,9 +128,8 @@ class LanguageModelProcessor:
                 context += f"\n\n[WEB SEARCH RESULTS]\n{web_results}"  
                 logging.info(f"Web results added to context: {web_results[:200]}.....") 
             return self.conversation.invoke({"text": text + "\n" + context})['text']  # NEW Immediate return after web search 
- 
 
-        # Check for document listing request
+        # Document listing request handler
         if self.context_manager and self.list_docs_pattern.search(text):
             # Fetch all documents from ChromaDB
             all_data = self.context_manager.collection.get(include=['documents', 'metadatas']) # This is where ChromaDB is accessed via context_manager
@@ -146,7 +149,7 @@ class LanguageModelProcessor:
             self.memory.save_context({'input': text}, {'output': context})
             logging.info(f"Document list context added with {len(doc_list)} documents. context: {context[:100]}...")
         
-        # Regular query processing with RAG       
+        # RAG handler
         else:    
             if self.context_manager: 
                 similar_docs = self.context_manager.get_similar_documents(text, top_k=10)
@@ -163,20 +166,7 @@ class LanguageModelProcessor:
                         chunk_text = doc['document']
                         context_parts.append(f"From {filename}:\n{chunk_text}")
                     context = "\n\n".join(context_parts)
-                # else:
-                #     context = ""
-            # else:
-            #     context = ""
-                # else:
-                #     web_results = self.perform_web_search(text)
-                #     context = web_results
-                #     logging.info(f"No similar documents found. Using web search results as context: {context[:200]}...")
-                # # NEW -- Web Search Integration
-                # logging.info(f"Web search check - enabled: {self.online_research_enabled}, pattern match: {bool(self.web_search_pattern.search(text.lower()))}")
-                
-            
-            
-            
+                     
         # Review and implement properly
         if context:
             # max_chunk_tokens = CHUNK_SIZE_LLM  # Use global/configurable value
@@ -237,7 +227,6 @@ class LanguageModelProcessor:
         return response['text']
         
     
-            
 
 # TTS Class using DEEPGRAM
 class TextToSpeech:
@@ -405,8 +394,7 @@ class ConversationManager:
                 self.llm_response = self.llm.process(self.transcription_response)                            
                 tts = TextToSpeech()
                 tts.speak(self.llm_response)
-            # Reset transcription_response for the next loop iteration, maybe change this so the transcription persists
-            # self.transcription_response = ''
+            
 
         # while True:
         #     if not self.transcription_active:
