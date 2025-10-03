@@ -439,22 +439,6 @@ class ConversationManager:
             self.transcription_active = False
             logging.info("Transcription event loop closed")
             
-    
-            
-    # def run_transcription(self):
-    #     if not self.loop.is_running():
-    #         self.transcription_active = True
-    #         self.loop.run_until_complete(self.main())
-    #     else:
-    #         # If loop is running, schedule as task
-    #         asyncio.ensure_future(self.main(), loop=self.loop)
-    
-       
-    # def run_transcription(self):
-    #     self.transcription_active = True
-    #     loop = asyncio.new_event_loop()
-    #     asyncio.set_event_loop(loop)
-    #     loop.run_until_complete(self.main())
 
     def stop_transcription(self):
         self.transcription_active = False
