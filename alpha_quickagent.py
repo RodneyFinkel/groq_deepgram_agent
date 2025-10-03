@@ -21,7 +21,8 @@ from langchain.prompts import (
 )
 from langchain.chains import LLMChain
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
+#from duckduckgo_search import DDGS
 
 import logging # New
 import re
@@ -46,7 +47,7 @@ class LanguageModelProcessor:
                             groq_api_key=os.getenv("GROQ_API_KEY"), 
                             streaming=True,
                             max_retries=3,
-                            ) # qwen/qwen3-32b
+                            ) # change to this soon: llama-3.3-70b-versatile 
         
         self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
@@ -84,7 +85,8 @@ class LanguageModelProcessor:
     def perform_web_search(self, query, num_results=3):
         try:
             with DDGS() as ddgs:
-                results = ddgs.text(query, max_results=num_results)
+                results = ddgs.text(query, region='wt-wt', max_results=num_results)
+                logging.info(f"Raw web search results: {results}")
                 summaries = [f"- {r['title']}: {r['body'][:150]}...({r['href']})" for r in results]
                 summary = "\n".join(summaries)
                 logging.info(f"WEb search for '{query}': {summary[:200]} ")
@@ -116,12 +118,13 @@ class LanguageModelProcessor:
         context = ""  # Initialize context to avoid unbound variable issues
         
         if self.online_research_enabled and self.web_search_pattern.search(text) is not None:
-        #if self.online_research_enabled and self.web_search_pattern.search(text):
             logging.info(f"Query '{text}' triggers web search")
             web_results = self.perform_web_search(text)
             if web_results:
                 context += f"\n\n[WEB SEARCH RESULTS]\n{web_results}"  
-                logging.info(f"Web results added to context: {web_results[:200]}.....")  
+                logging.info(f"Web results added to context: {web_results[:200]}.....") 
+            return self.conversation.invoke({"text": text + "\n" + context})['text']  # Immediate return after web search 
+ 
 
         # Check for document listing request
         if self.context_manager and self.list_docs_pattern.search(text):
@@ -311,7 +314,8 @@ def check_microphone():
         p.terminate()          
             
             
-                        
+# DeprecatedWarning: asynclive is deprecated as of 3.4.0 and will be removed in 4.0.0. deepgram.listen.asynclive is deprecated. Use deepgram.listen.asyncwebsocket instead.
+# dg_connection = deepgram.listen.asynclive.v("1"                        
 async def get_transcript(callback):
     transcription_complete = asyncio.Event()  # Event to signal transcription completion
 
