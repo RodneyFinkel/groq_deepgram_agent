@@ -24,6 +24,7 @@ from langchain.chains import LLMChain
 from ddgs import DDGS
 import logging # New
 import re
+from bs4 import BeautifulSoup
 
 from deepgram import (
     DeepgramClient,
@@ -72,15 +73,53 @@ class LanguageModelProcessor:
         self.list_docs_pattern = re.compile(r"\b(list documents|what documents|available documents|show documents|documents in context)\b", re.IGNORECASE)
         self.web_search_pattern = re.compile(r"\b(web search|online research|current information|latest information|duckduckgo|search web|search online)\b", re.IGNORECASE)  # NEWx
         self.online_research_enabled = True # Default to true
+        self.browse_page_instructions = "Extract the main content, key facts, and relevant details from the page. Focus on body text, ignore navigation, ads, and scripts. Limit to 400 words."
+        self.browse_page_timeout = 10
+        self.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' 
+        
         
     # NEW
     def set_online_research_enabled(self, enabled):
         self.online_research_enabled = True
         logging.info(f"Online research {'enabled' if enabled else 'disabled'}")
         
-    
+    # New web search utility function
+    def browse_page(self, url, instructions=None):
+        """Fetch and extract clean text from a webpage."""
+        if not instructions:
+            instructions = self.browse_page_instructions
+        
+        try:
+            headers = {'User-Agent': self.user_agent}  # Add UA to mimic browser
+            response = requests.get(url, headers=headers, timeout=self.browse_page_timeout)
+            if response.status_code != 200:
+                logging.warning(f"Browse failed for url: {url} with status code {response.status_code}")
+                return "Page unavailable"
+            
+            soup = BeautifulSoup(response.text, 'html.parser')   
+            for element in soup(['script', 'style', 'header', 'footer']):
+                element.decompose()
+                
+            text = soup.get_text(separator=' ', strip=True)
+            # Clean and truncate
+            clean_text = re.sub(r'\s+', ' ', text)[:2000]  # Limit to ~2000 chars (~500 tokens)
+            if len(clean_text) < 100:
+                logging.warning(f"Little content extracted from {url}")
+                return "Insufficient content on page."
+            
+            logging.info(f"Browsed {url}: {len(clean_text)} chars extracted")
+            return clean_text
+        except requests.RequestException as e:
+            logging.error(f"Request error for {url}: {str(e)}")
+            return "Page fetch failed."
+        except Exception as e:
+            logging.error(f"Browse page error for {url}: {str(e)}")
+            return "Page processing failed."
+            
+                 
+               
     # NEW Web Search function using DUCKDUCKGO    
-    def perform_web_search(self, query, num_results=3):
+    def perform_web_search_with_browse(self, query, num_results=3):
         # Clean query: Remove trigger phrases to focus on intent
         clean_query = self.web_search_pattern.sub('', query).strip()
         if not clean_query:
@@ -88,15 +127,30 @@ class LanguageModelProcessor:
         logging.info(f"Cleaned search query: '{clean_query}'")
         try:
             with DDGS() as ddgs:
-                results = ddgs.text(clean_query, region='wt-wt', max_results=num_results)
-                logging.info(f"Raw web search results: {results}")
-                summaries = [f"- {r['title']}: {r['body'][:150]}...({r['href']})" for r in results]
-                summary = "\n".join(summaries)
+                search_results = ddgs.text(clean_query, region='wt-wt', max_results=num_results)
+                logging.info(f"Web search returned {len(search_results)} results for query: '{clean_query}'")
+                
+                full_content = []
+                for result in search_results:
+                    url = result['href']
+                    logging.info(f"Browsing URL: {url}")
+                    page_content = self.browse_page(url)
+                    if page_content and "failed" not in page_content.lower():
+                        full_content.append(f"From '{result['title']}' ({url}): {page_content}")
+                    else:
+                        full_content.append(f"From '{result['title']}' ({url}): {result['body'][:200]}...") # Fallback to summary
+                
+                
+                
+                #summaries = [f"- {r['title']}: {r['body'][:150]}...({r['href']})" for r in search_results]
+                #summary = "\n".join(summaries)
+                summary = "\n\n".join(full_content)
+                logging.info(f"Browsed content: {summary[:200]}...")
                 logging.info(f"WEb search for '{clean_query}': {summary[:200]} ")
                 return summary
                                
         except Exception as e:
-            logging.error(f"Web search failed: {str(e)}")
+            logging.error(f"Web search with browse failed: {str(e)}")
             return "Web search unavailable. Relying on local documents"
     
     
@@ -123,11 +177,17 @@ class LanguageModelProcessor:
         # WEb Search Handling
         if self.online_research_enabled and self.web_search_pattern.search(text) is not None:
             logging.info(f"Query '{text}' triggers web search")
-            web_results = self.perform_web_search(text)
+            web_results = self.perform_web_search_with_browse(text)
             if web_results:
                 context = f"\n\n[WEB SEARCH RESULTS]\n{web_results}"  
-                logging.info(f"Web results added to context: {web_results[:200]}.....") 
-            return self.conversation.invoke({"text": text + "\n" + context})['text']  # NEW Immediate return after web search 
+                logging.info(f"Web results added to context: {web_results[:200]}.....")
+                # Early LLM call for web-focusd queries
+                response = self.conversation.invoke([{"text": text+ "\n\n" + context}])
+                self.memory.chat_memory.add_ai_message(response["text"])
+                logging.info(f"LLM Response: {response['text'][:100]}...")
+                return response['text']
+                 
+            #return self.conversation.invoke({"text": text + "\n" + context})['text']  # NEW Immediate return after web search 
 
         # Document listing request handler
         if self.context_manager and self.list_docs_pattern.search(text):
