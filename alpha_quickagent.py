@@ -182,7 +182,7 @@ class LanguageModelProcessor:
                 context = f"\n\n[WEB SEARCH RESULTS]\n{web_results}"  
                 logging.info(f"Web results added to context: {web_results[:200]}.....")
                 # Early LLM call for web-focusd queries
-                response = self.conversation.invoke([{"text": text+ "\n\n" + context}])
+                response = self.conversation.invoke({"text": text+ "\n\n" + context})
                 self.memory.chat_memory.add_ai_message(response["text"])
                 logging.info(f"LLM Response: {response['text'][:100]}...")
                 return response['text']
