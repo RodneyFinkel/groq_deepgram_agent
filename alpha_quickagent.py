@@ -115,9 +115,7 @@ class LanguageModelProcessor:
         except Exception as e:
             logging.error(f"Browse page error for {url}: {str(e)}")
             return "Page processing failed."
-            
-                 
-               
+                                     
     # NEW Web Search function using DUCKDUCKGO    
     def perform_web_search_with_browse(self, query, num_results=3):
         # Clean query: Remove trigger phrases to focus on intent
