@@ -76,7 +76,7 @@ class LanguageModelProcessor:
         self.browse_page_instructions = "Extract the main content, key facts, and relevant details from the page. Focus on body text, ignore navigation, ads, and scripts. Limit to 400 words."
         self.browse_page_timeout = 10
         self.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' 
-        
+        self.think_pattern = re.compile(r'<think>.*?</think>|<reasoning>.*?</reasoning>|(?:\n|^)Thinking:.*?(?:\n|$)', re.DOTALL | re.IGNORECASE)
         
     # NEW
     def set_online_research_enabled(self, enabled):
@@ -152,7 +152,14 @@ class LanguageModelProcessor:
         except Exception as e:
             logging.error(f"Web search with browse failed: {str(e)}")
             return "Web search unavailable. Relying on local documents"
-    
+        
+    def clean_response(self, response_text):
+        """Remove chain of thought of <think> sections from LLM response"""
+        if not response_text:
+            return response_text
+        cleaned = self.think_pattern.sub('', response_text).strip()
+        logging.info(f"Cleaned LLM response: {cleaned[:100]}") 
+        return cleaned   
     
     def chunk_text_by_tokens(self, text, chunk_size=1000, overlap=200):
         tokens = self.tokenizer.encode(text, add_special_tokens=False)
@@ -183,9 +190,10 @@ class LanguageModelProcessor:
                 logging.info(f"Web results added to context: {web_results[:200]}.....")
                 # Early LLM call for web-focusd queries
                 response = self.conversation.invoke({"text": text+ "\n\n" + context})
-                self.memory.chat_memory.add_ai_message(response["text"])
-                logging.info(f"LLM Response: {response['text'][:100]}...")
-                return response['text']
+                cleaned_response = self.clean_response(response['text']) #New truncating COT from LLM in TTS
+                self.memory.chat_memory.add_ai_message(cleaned_response)
+                logging.info(f"LLM Response: {cleaned_response[:100]}...")
+                return cleaned_response
                  
             #return self.conversation.invoke({"text": text + "\n" + context})['text']  # NEW Immediate return after web search 
 
@@ -282,9 +290,10 @@ class LanguageModelProcessor:
    
         # ______Call the LLM_______
         response = self.conversation.invoke({"text": text})
-        self.memory.chat_memory.add_ai_message(response['text'])  # Add AI response to memory
+        cleaned_response_rag = self.clean_response(response['text']) #New truncating COT from LLM in TTS
+        self.memory.chat_memory.add_ai_message(cleaned_response_rag)  # Add AI response to memory
         logging.info(f"LLM Response: {response['text'][:100]}...")  # Log first 100 chars of response
-        return response['text']
+        return cleaned_response_rag
         
     
 
@@ -451,7 +460,7 @@ class ConversationManager:
                 break
             if self.transcription_response.strip():  # Only process non-empty
                 logging.info(f"Processing transcription: {self.transcription_response}")
-                self.llm_response = self.llm.process(self.transcription_response)                            
+                self.llm_response = self.llm.process(self.transcription_response)     # Process method in LanguageModelProcessor                       
                 tts = TextToSpeech()
                 tts.speak(self.llm_response)
             
