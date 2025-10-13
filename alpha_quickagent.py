@@ -42,11 +42,11 @@ load_dotenv()
 class LanguageModelProcessor:
     def __init__(self, context_manager):
         self.llm = ChatGroq(temperature=0, 
-                            model_name="deepseek-r1-distill-llama-70b", # this is a new valid model 
+                            model_name="llama-3.3-70b-versatile", # this is a new valid model 
                             groq_api_key=os.getenv("GROQ_API_KEY"), 
                             streaming=True,
                             max_retries=3,
-                            ) # change to this soon: llama-3.3-70b-versatile 
+                            ) 
         
         self.tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/all-MiniLM-L6-v2') # NEW
         self.memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
