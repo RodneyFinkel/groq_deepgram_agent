@@ -1,28 +1,26 @@
-# Use the official Python image from the Docker Hub
-FROM python:3.11.3
+FROM python:3.11-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED 1
+ENV TOKENIZERS_PARALLELISM=false
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    portaudio19-dev \
-    gcc \
-    ffmpeg\
-    && apt-get clean \
+# System deps needed for audio, ffmpeg, building some Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential git ffmpeg libsndfile1 portaudio19-dev libasound2-dev ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
 WORKDIR /app
 
-# Copy the requirements file into the container
-COPY requirements.txt /app/
+# Install Python deps
+COPY requirements.txt /app/requirements.txt
+RUN pip install --upgrade pip setuptools wheel && pip install -r /app/requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy project
+COPY . /app
 
-# Copy the rest of the application code
-COPY . /app/
+# Expose Flask default port (alpha_app2 uses Flask)
+EXPOSE 5000
 
-# Command to run the application
-CMD ["python3", "app2.py"]
+# Default command (adjust if you run via gunicorn or different entry)
+CMD ["python", "alpha_app2.py"]

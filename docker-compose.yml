@@ -1,17 +1,15 @@
-version: '3.9'
-
+version: "3.8"
 services:
-  quickagent:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  app:
+    build: .
+    container_name: groq_deepgram_agent
     ports:
-      - "8000:8000"
-    environment:
-      - FLASK_ENV=development
+      - "5000:5000"
+    env_file:
+      - .env
     volumes:
       - .:/app
-    
+    restart: unless-stopped
       
 
   
