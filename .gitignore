@@ -1,9 +1,26 @@
 # Environments
 .env
+.env.*
 .venv
 env/
+venv/
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
 
+# Project artifacts / persistent storage
 uploads/
-__pycache__
+chroma_storage/
+.groq_deepgram_agent.tar
 
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Logs & databases
+*.log
+*.sqlite3
+groq_deepgram_agent.tar
