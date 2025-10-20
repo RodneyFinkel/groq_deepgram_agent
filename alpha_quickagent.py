@@ -191,6 +191,7 @@ class LanguageModelProcessor:
                 cleaned_response = self.clean_response(response['text']) #New truncating COT from LLM in TTS
                 self.memory.chat_memory.add_ai_message(cleaned_response)
                 logging.info(f"LLM Response: {cleaned_response[:100]}...")
+                logging.info(f"History length after web query: {len(self.memory.chat_memory.messages)}")
                 return cleaned_response
                  
             #return self.conversation.invoke({"text": text + "\n" + context})['text']  # NEW Immediate return after web search 
@@ -291,6 +292,7 @@ class LanguageModelProcessor:
         cleaned_response_rag = self.clean_response(response['text']) #New truncating COT from LLM in TTS
         self.memory.chat_memory.add_ai_message(cleaned_response_rag)  # Add AI response to memory
         logging.info(f"LLM Response: {response['text'][:100]}...")  # Log first 100 chars of response
+        logging.info(f"History length after RAG query: {len(self.memory.chat_memory.messages)}")
         return cleaned_response_rag
         
     

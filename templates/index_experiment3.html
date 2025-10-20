@@ -525,6 +525,10 @@
                             Submit Query
                             <span class="tooltip absolute bg-gray-800 text-white text-xs rounded py-1 px-2 -top-10 left-1/2 transform -translate-x-1/2">Send typed query</span>
                         </button>
+                        <div style="margin-top: 10px;">
+                            <button onclick="exportHistory('json')">Export History (JSON)</button>
+                            <button onclick="exportHistory('csv')">Export History (CSV)</button>
+                        </div>
                     </div>
                 </div>
                 <div class="glass rounded-xl p-6 transition-all duration-300 hover:shadow-lg">
@@ -563,6 +567,14 @@
         © 2025 QuickRagAgent. All rights reserved.
     </footer>
     <script>
+
+
+         // Export History
+        function exportHistory(format) {
+            // Open in new tab to trigger download
+            window.open(`/export_history_${format}`, '_blank');
+            console.log(`Exporting history as ${format.toUpperCase()}`);
+    }
 
         // Create tooltip element
         const tooltip = d3.select('body')

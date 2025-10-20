@@ -1,4 +1,8 @@
-from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
+from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session, Response
+import json
+import csv
+from io import StringIO
+import time
 from flask_mail import Mail, Message
 from flask_session import Session
 import os
@@ -11,7 +15,6 @@ from chunk_config import CHUNK_SIZE_INGEST, CHUNK_OVERLAP_INGEST, CHUNK_SIZE_LLM
 import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-import time
 # NEW
 import logging
 from sentence_transformers import SentenceTransformer
@@ -553,7 +556,75 @@ def set_online_research():
     except Exception as e:
         logging.error(f"Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+#NEW    
+@app.route('/export_history_json', methods=['GET'])
+def export_history():
+    try:
+        history = conversation_manager.llm.memory.chat_memory.messages
+        logging.info(f"History length: {len(history)} items")
+        if not history:
+            logging.info('No history available for export')
+            return jsonify({'error': 'No history available'}), 400
+
+        export_data = [
+            {
+                'role': msg.type,
+                'content': msg.content,
+                'timestamp': msg.strftime('%y-%m-%d %H:%M:%S', time.localtime(time.time()))
+            }
+            for msg in history
+        ]
+        
+        json_data = json.dumps(export_data, indent=2, ensure_ascii=False)
+        logging.info(f"Exported {len(export_data)}history items as json")
+        
+        return Response(
+            json_data,
+            mimetype='application/json',
+            headers={
+                'Content-Disposition': 'attachment; filename=query_history.json',
+                'Cache-Control': 'no-cache'
+            }
+        )
+        
+    except Exception as e:
+        logging.error(f"Export error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
     
+    
+ #NEW   
+@app.route('/export_history_csv', methods=['GET'])
+def export_history_csv():
+    try:
+        history = conversation_manager.llm.memory.chat_memory.messages
+        logging.info(f"History length: {len(history)} items")
+        if not history:
+            logging.info("No history available for export")
+            return jsonify({'error': 'No history available'}), 400
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['Role', 'Content', 'Timestamp'])
+        
+        for msg in history:
+            content = (msg.content[:100] + '...') if len(msg.content) > 100 else msg.content
+            writer.writerow([msg.type, content, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))])
+        
+        csv_content = output.getvalue()
+        logging.info(f"Exported {len(history)} history items as CSV")
+        
+        return Response(
+            csv_content,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': 'attachment; filename=query_history.csv',
+                'Cache-Control': 'no-cache'
+            }
+        )
+    except Exception as e:
+        logging.error(f"CSV export error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
     
         
      
